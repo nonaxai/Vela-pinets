@@ -37,6 +37,7 @@
   "devDependencies": {
     "@luxalgo/vela": "^0.8.1",
     "@types/node": "^26.1.1",
+    "echarts": "^6.1.0",
     "esbuild": "^0.28.0",
     "eslint": "^9.0.0",
     "pinets": "^0.11.0",

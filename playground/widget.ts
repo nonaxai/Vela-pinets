@@ -18,6 +18,8 @@ import {
 import { Dialog } from '@luxalgo/vela/ui';
 import { PineWorkerEngine } from '../src';
 import { mountPineEditor } from './pine-editor';
+import { StrategyTester } from './strategy-tester';
+import type { IndicatorHandle, Vela } from '@luxalgo/vela';
 
 // App-wide default engine registration: any new chart or workspace cell automatically
 // uses PineWorkerEngine for 'pine' scripts.
@@ -25,7 +27,7 @@ registerDefaultEngine('pine', () => new PineWorkerEngine());
 
 // Worker-path instrumentation: count real Web Worker spawns so a browser probe can
 // PROVE Pine runs off the main thread through the addon (window.__workerSpawns >= 1).
-type PlaygroundDebugWindow = Window & { __workerSpawns: number; workspace?: VelaWorkspace };
+type PlaygroundDebugWindow = Window & { __workerSpawns: number; workspace?: VelaWorkspace; strategyTester?: StrategyTester };
 const debugWin = window as unknown as PlaygroundDebugWindow;
 debugWin.__workerSpawns = 0;
 const RealWorker = window.Worker;
@@ -106,6 +108,30 @@ p1 = plot(upper, "Upper Band", color=color.teal)
 plot(mid, "Basis", color=color.orange)
 p2 = plot(lower, "Lower Band", color=color.teal)
 fill(p1, p2, color=color.rgb(0, 150, 136, 90))`,
+        },
+        {
+            name: 'EMA Golden Cross Strategy',
+            enabled: true, // on from first paint — visible proof of strategy backtesting
+            script: `//@version=5
+strategy("EMA Golden Cross Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+shortLength = input.int(50, title="Fast EMA Length")
+longLength = input.int(200, title="Slow EMA Length")
+
+shortEMA = ta.ema(close, shortLength)
+longEMA = ta.ema(close, longLength)
+
+longCondition = ta.crossover(shortEMA, longEMA)
+shortCondition = ta.crossunder(shortEMA, longEMA)
+
+if (longCondition)
+    strategy.entry("Golden Cross BUY", strategy.long)
+
+if (shortCondition)
+    strategy.entry("Death Cross SELL", strategy.short)
+
+plot(shortEMA, title="Fast EMA", color=color.blue, linewidth=2)
+plot(longEMA, title="Slow EMA", color=color.orange, linewidth=2)`,
         },
         {
             name: 'SMA Cross Strategy',
@@ -251,3 +277,61 @@ registerSidePanel({
 
 // The workspace is already built — project freshly registered actions + panels into its chrome.
 workspace.refreshActions();
+
+// ── Backtesting Panel for Pine Strategy indicators ──
+const strategyTester = new StrategyTester({
+    host: workspace.root,
+    getActiveChart: () => workspace.active?.chart ?? null,
+});
+debugWin.strategyTester = strategyTester;
+
+function isStrategyHandle(h: IndicatorHandle): boolean {
+    if (h.source && /^\s*strategy\s*\(/m.test(h.source)) return true;
+    if (h.title && /strategy/i.test(h.title)) return true;
+    if (h.props && h.props.some((p) => p.key === 'initial_capital' || p.key === 'default_qty_value')) return true;
+    return false;
+}
+
+function syncActiveStrategy(): void {
+    const chart = workspace.active?.chart;
+    if (!chart) {
+        void strategyTester.bindStrategy(null);
+        return;
+    }
+    const indicators = chart.indicators();
+    // Find the first visible strategy indicator on this chart
+    const activeStrat = indicators.find((h) => h.visible && isStrategyHandle(h)) ?? null;
+    void strategyTester.bindStrategy(activeStrat);
+}
+
+function attachChartSync(chart: Vela): () => void {
+    const unsubs: Array<() => void> = [];
+    unsubs.push(chart.on('indicator:added', () => syncActiveStrategy()));
+    unsubs.push(chart.on('indicator:removed', () => syncActiveStrategy()));
+    unsubs.push(chart.on('indicator:visibility', () => syncActiveStrategy()));
+    unsubs.push(chart.on('indicator:inputs', () => syncActiveStrategy()));
+    unsubs.push(chart.on('market:changed', () => syncActiveStrategy()));
+    unsubs.push(chart.on('load:end', () => syncActiveStrategy()));
+    return () => {
+        for (const u of unsubs) u();
+    };
+}
+
+let cleanupCurrentChart: (() => void) | null = null;
+function rebindActiveCell(): void {
+    cleanupCurrentChart?.();
+    const chart = workspace.active?.chart;
+    if (chart) {
+        cleanupCurrentChart = attachChartSync(chart);
+    }
+    syncActiveStrategy();
+}
+
+workspace.on('cell:active', () => rebindActiveCell());
+workspace.on('script:run', () => syncActiveStrategy());
+workspace.on('layout:changed', () => rebindActiveCell());
+
+void workspace.cells()[0]?.chart.ready().then(() => {
+    rebindActiveCell();
+});
+
