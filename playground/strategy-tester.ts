@@ -228,6 +228,19 @@ function generateReferenceData() {
     };
 }
 
+type TradesColumnKey =
+    | 'dateTime'
+    | 'signal'
+    | 'price'
+    | 'size'
+    | 'netPnl'
+    | 'returnPct'
+    | 'commission'
+    | 'favorableExcursion'
+    | 'adverseExcursion'
+    | 'cumPnl'
+    | 'duration';
+
 export class StrategyTester {
     private readonly host: HTMLElement;
     private readonly getActiveChart: () => Vela | null;
@@ -259,12 +272,35 @@ export class StrategyTester {
 
     // State
     private mode: 'hidden' | 'docked' | 'expanded' | 'maximized' = 'hidden';
-    private currentHeight = 340;
+    private currentHeight = 520;
     private activeHandle: IndicatorHandle | null = null;
     private currentView: 'chart' | 'table' = 'chart';
     private isDragging = false;
     private startY = 0;
     private startHeight = 0;
+
+    // Dropdowns & filtering state (Gambar 3, 4, 5)
+    private selectedTestingPeriod = 'available';
+    private selectedCurrency = 'SAME';
+    private customCapitalAmount = 10000;
+    private selectedBarDetalization = 'default';
+    private selectedExecModes: Array<'close' | 'fill' | 'tick'> = ['close'];
+    private scaleMode: 'regular' | 'percent' = 'regular';
+    private showWhitespaces = false;
+    private activeDropdownEl: HTMLElement | null = null;
+    private activeColumns: Record<TradesColumnKey, boolean> = {
+        dateTime: true,
+        signal: false,
+        price: true,
+        size: true,
+        netPnl: true,
+        returnPct: true,
+        commission: false,
+        favorableExcursion: false,
+        adverseExcursion: false,
+        cumPnl: false,
+        duration: false,
+    };
 
     // Active series toggles (Requirement 4)
     private activeSeries = {
@@ -495,7 +531,7 @@ export class StrategyTester {
                             <button class="vst-icon-btn vst-perf-reset-zoom" title="Reset zoom">
                                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/></svg>
                             </button>
-                            <button class="vst-icon-btn vst-btn-strat-settings" title="Strategy properties">
+                            <button class="vst-icon-btn vst-btn-scale-settings" title="Scale settings">
                                 <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></svg>
                             </button>
                             <button class="vst-icon-btn vst-perf-screenshot" title="Export image">
@@ -552,6 +588,18 @@ export class StrategyTester {
                         <div class="vst-trades-table-container" style="display:none;"></div>
                     </div>
                 </div>
+
+                <!-- Performance Analysis Section (Gambar 1) -->
+                <div class="vst-analysis-section">
+                    <div class="vst-analysis-title">Performance analysis</div>
+                    <div class="vst-analysis-tabs">
+                        <button class="vst-analysis-tab is-active" data-tab="breakdown">Breakdown</button>
+                        <button class="vst-analysis-tab" data-tab="periodical">Periodical</button>
+                        <button class="vst-analysis-tab" data-tab="benchmarking">Benchmarking</button>
+                        <button class="vst-analysis-tab" data-tab="margin-usage">Margin usage</button>
+                        <button class="vst-analysis-tab" data-tab="growth-decline">Growth and decline</button>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -588,7 +636,7 @@ export class StrategyTester {
                 background: #151619;
                 color: #d1d4dc;
                 font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
-                font-size: 12px;
+                font-size: 13px;
                 user-select: none;
                 flex: none;
                 box-sizing: border-box;
@@ -616,7 +664,8 @@ export class StrategyTester {
                 z-index: 32;
             }
             .vela-strategy-tester.is-maximized .vst-stats-card-container,
-            .vela-strategy-tester.is-maximized .vst-controls-bar {
+            .vela-strategy-tester.is-maximized .vst-controls-bar,
+            .vela-strategy-tester.is-maximized .vst-analysis-section {
                 display: none;
             }
             .vela-strategy-tester.is-maximized .vst-inline-stats-strip {
@@ -761,20 +810,21 @@ export class StrategyTester {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                height: 34px;
-                padding: 0 8px 0 12px;
+                height: 42px;
+                padding: 0 16px;
                 background: #131417;
                 border-bottom: 1px solid #22242a;
             }
             .vst-strat-tab {
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
-                height: 28px;
-                padding: 0 10px;
+                gap: 8px;
+                height: 34px;
+                padding: 0 14px;
                 background: #1e2025;
-                border-radius: 5px 5px 0 0;
+                border-radius: 6px 6px 0 0;
                 font-weight: 600;
+                font-size: 13.5px;
                 border-top: 1px solid #32353e;
                 border-left: 1px solid #32353e;
                 border-right: 1px solid #32353e;
@@ -782,16 +832,16 @@ export class StrategyTester {
             .vst-header-actions {
                 display: flex;
                 align-items: center;
-                gap: 4px;
+                gap: 6px;
             }
 
             /* Secondary Controls Bar */
             .vst-controls-bar {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                height: 38px;
-                padding: 0 12px;
+                gap: 10px;
+                height: 48px;
+                padding: 0 16px;
                 background: #151619;
                 border-bottom: 1px solid #22242a;
                 overflow-x: auto;
@@ -800,18 +850,20 @@ export class StrategyTester {
                 display: inline-flex;
                 background: #1b1c21;
                 border: 1px solid #2c2d33;
-                border-radius: 4px;
+                border-radius: 6px;
                 overflow: hidden;
+                height: 34px;
             }
             .vst-seg-btn {
                 all: unset;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 26px;
-                height: 24px;
+                width: 36px;
+                height: 32px;
                 cursor: pointer;
                 color: #787b86;
+                transition: color 0.12s ease;
             }
             .vst-seg-btn:hover {
                 color: #ffffff;
@@ -825,56 +877,67 @@ export class StrategyTester {
                 all: unset;
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
-                height: 26px;
-                padding: 0 8px;
-                border-radius: 4px;
+                gap: 8px;
+                height: 34px;
+                padding: 0 12px;
+                border-radius: 6px;
                 cursor: pointer;
                 color: #d1d4dc;
-                font-size: 11.5px;
+                font-size: 13px;
+                background: #1e222d;
+                border: 1px solid #2a2e39;
                 white-space: nowrap;
+                transition: all 0.15s ease;
             }
-            .vst-dropdown-pill:hover {
-                background: #202227;
+            .vst-dropdown-pill:hover,
+            .vst-dropdown-pill.is-active {
+                background: #2a2e39;
+                border-color: #3e424d;
                 color: #ffffff;
+            }
+            .vst-dropdown-pill.is-active .vst-chevron {
+                transform: rotate(180deg);
+            }
+            .vst-chevron {
+                transition: transform 0.15s ease;
             }
             .vst-badge-num {
                 display: inline-flex;
-                margin-left: 2px;
-                font-size: 10px;
+                margin-left: 3px;
+                font-size: 11px;
             }
             .vst-divider {
                 width: 1px;
-                height: 16px;
+                height: 20px;
                 background: #2a2b30;
                 margin: 0 4px;
             }
 
             /* Key stats */
             .vst-stats-card-container {
-                padding: 10px 16px 8px 16px;
+                padding: 16px 20px 14px 20px;
                 background: #151619;
                 border-bottom: 1px solid #202227;
                 flex: none;
             }
             .vst-stats-title {
-                font-size: 13.5px;
+                font-size: 16px;
                 font-weight: 700;
                 color: #ffffff;
-                margin-bottom: 8px;
+                margin-bottom: 12px;
             }
             .vst-stats-grid {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
-                gap: 16px;
+                gap: 24px;
             }
             .vst-stat-card {
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
+                gap: 6px;
             }
             .vst-stat-label {
-                font-size: 11.5px;
+                font-size: 13px;
                 color: #787b86;
             }
             .vst-stat-value-row {
@@ -884,7 +947,7 @@ export class StrategyTester {
                 flex-wrap: wrap;
             }
             .vst-stat-val {
-                font-size: 15px;
+                font-size: 19px;
                 font-weight: 700;
                 color: #d1d4dc;
                 font-variant-numeric: tabular-nums;
@@ -896,12 +959,12 @@ export class StrategyTester {
                 color: #ef5350;
             }
             .vst-stat-curr {
-                font-size: 10.5px;
+                font-size: 11.5px;
                 color: #787b86;
                 font-weight: 600;
             }
             .vst-stat-sub {
-                font-size: 12px;
+                font-size: 14px;
                 font-weight: 600;
                 font-variant-numeric: tabular-nums;
             }
@@ -925,17 +988,17 @@ export class StrategyTester {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                height: 32px;
-                padding: 0 16px;
+                height: 38px;
+                padding: 0 20px;
                 flex: none;
             }
             .vst-perf-title-row {
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
+                gap: 8px;
             }
             .vst-perf-title {
-                font-size: 12.5px;
+                font-size: 15px;
                 font-weight: 700;
                 color: #ffffff;
             }
@@ -1115,6 +1178,349 @@ export class StrategyTester {
             .vst-trades-table tr:hover td {
                 background: #1c1d22;
             }
+
+            /* Trades Header Bar (media_1791243438337.png) */
+            .vst-trades-header-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 16px;
+                border-bottom: 1px solid #2a2b30;
+                background: #151619;
+                position: sticky;
+                top: 0;
+                z-index: 2;
+            }
+            .vst-trades-header-title {
+                font-size: 14.5px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            .vst-trades-header-actions {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            /* Performance Analysis Section (Gambar 1) */
+            .vst-analysis-section {
+                padding: 14px 20px 18px 20px;
+                background: #151619;
+                border-top: 1px solid #202227;
+                flex: none;
+            }
+            .vst-analysis-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #ffffff;
+                margin-bottom: 12px;
+            }
+            .vst-analysis-tabs {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .vst-analysis-tab {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                height: 32px;
+                padding: 0 16px;
+                border-radius: 16px;
+                background: #1e222d;
+                border: 1px solid #2a2e39;
+                color: #d1d4dc;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+            .vst-analysis-tab:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+            .vst-analysis-tab.is-active {
+                background: #f0f3fa;
+                color: #131722;
+                border-color: #f0f3fa;
+                font-weight: 700;
+            }
+
+            /* Dropdowns (Gambar 3, 4, 5) */
+            .vst-dropdown-panel {
+                position: fixed;
+                background: #1e222d;
+                border: 1px solid #2a2e39;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                padding: 8px 0;
+                z-index: 1000;
+                font-size: 13px;
+                color: #d1d4dc;
+                font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+                user-select: none;
+                box-sizing: border-box;
+            }
+            .vst-dropdown-panel * {
+                box-sizing: border-box;
+            }
+            .vst-drop-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 14px 8px 14px;
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            .vst-drop-header-left {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vst-help-circle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: #363a45;
+                color: #a3a6af;
+                font-size: 10px;
+                font-weight: bold;
+                cursor: help;
+            }
+            .vst-drop-reset-btn {
+                all: unset;
+                font-size: 12.5px;
+                font-weight: 500;
+                color: #787b86;
+                cursor: pointer;
+            }
+            .vst-drop-reset-btn:hover,
+            .vst-drop-reset-btn.is-active {
+                color: #2962ff;
+            }
+            .vst-drop-divider {
+                height: 1px;
+                background: #2a2e39;
+                margin: 6px 0;
+            }
+            .vst-drop-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 8px 12px;
+                margin: 2px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease, color 0.12s ease;
+            }
+            .vst-drop-item:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+            .vst-drop-item.is-selected {
+                background: #f0f3fa;
+                color: #131722;
+                font-weight: 600;
+            }
+            .vst-drop-item.is-selected:hover {
+                background: #e4e7ee;
+                color: #131722;
+            }
+            .vst-drop-hint {
+                font-size: 12px;
+                color: #787b86;
+                margin-left: auto;
+            }
+            .vst-drop-item.is-selected .vst-drop-hint {
+                color: #50535e;
+            }
+            .vst-drop-custom-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                margin: 2px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease;
+            }
+            .vst-drop-custom-item:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+
+            /* Initial Capital Panel (Gambar 4) */
+            .vst-capital-panel-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px 6px 12px;
+                position: relative;
+            }
+            .vst-capital-input {
+                all: unset;
+                width: 110px;
+                height: 34px;
+                background: #14171f;
+                border: 1px solid #2a2e39;
+                border-radius: 6px;
+                padding: 0 10px;
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-capital-input:focus {
+                border-color: #2962ff;
+            }
+            .vst-curr-toggle-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 6px;
+                height: 34px;
+                padding: 0 10px;
+                background: #1e222d;
+                border: 1px solid #2a2e39;
+                border-radius: 6px;
+                color: #d1d4dc;
+                font-size: 12.5px;
+                cursor: pointer;
+                min-width: 125px;
+            }
+            .vst-curr-toggle-btn:hover {
+                border-color: #3e424d;
+                color: #ffffff;
+            }
+            .vst-curr-toggle-btn.is-active .vst-chevron {
+                transform: rotate(180deg);
+            }
+            .vst-curr-submenu {
+                position: absolute;
+                top: 48px;
+                right: 12px;
+                background: #1e222d;
+                border: 1px solid #2a2e39;
+                border-radius: 6px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+                padding: 4px 0;
+                min-width: 135px;
+                z-index: 1005;
+                max-height: 220px;
+                overflow-y: auto;
+            }
+            .vst-curr-item {
+                display: flex;
+                align-items: center;
+                padding: 6px 12px;
+                margin: 2px 4px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12.5px;
+                color: #d1d4dc;
+            }
+            .vst-curr-item:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+            .vst-curr-item.is-selected {
+                background: #f0f3fa;
+                color: #131722;
+                font-weight: 600;
+            }
+            .vst-curr-item.is-selected:hover {
+                background: #e4e7ee;
+                color: #131722;
+            }
+
+            /* Checkboxes (Script execution & Columns) */
+            .vst-check-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 7px 14px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease;
+            }
+            .vst-check-item:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+            .vst-checkbox {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid #434651;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+                color: #ffffff;
+                flex: none;
+            }
+            .vst-check-item.is-checked .vst-checkbox {
+                background: #2962ff;
+                border-color: #2962ff;
+            }
+            .vst-check-info {
+                margin-left: auto;
+                color: #787b86;
+                font-size: 12px;
+            }
+
+            /* Switches (Scale & Whitespace) */
+            .vst-switch-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 7px 14px;
+                font-size: 13px;
+                color: #d1d4dc;
+                cursor: pointer;
+                transition: background 0.12s ease;
+            }
+            .vst-switch-item:hover {
+                background: #2a2e39;
+                color: #ffffff;
+            }
+            .vst-switch-track {
+                width: 32px;
+                height: 18px;
+                background: #363a45;
+                border-radius: 10px;
+                position: relative;
+                transition: background 0.15s ease;
+            }
+            .vst-switch-track.is-on {
+                background: #2962ff;
+            }
+            .vst-switch-thumb {
+                width: 14px;
+                height: 14px;
+                background: #ffffff;
+                border-radius: 50%;
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                transition: transform 0.15s ease;
+            }
+            .vst-switch-track.is-on .vst-switch-thumb {
+                transform: translateX(14px);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -1227,14 +1633,54 @@ export class StrategyTester {
             });
         });
 
-        // Settings gear buttons
-        this.el.querySelectorAll('.vst-btn-strat-settings').forEach((btn) => {
+        // Settings gear buttons (Chart indicator settings)
+        this.el.querySelectorAll('.vst-controls-bar .vst-btn-strat-settings').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const chart = this.getActiveChart();
                 if (chart && 'renderer' in chart) {
                     const withRenderer = chart as unknown as { renderer?: { openSettings?: () => void } };
                     withRenderer.renderer?.openSettings?.();
                 }
+            });
+        });
+
+        // Filter pills dropdowns (Gambar 3, 4, 5)
+        const dateFilterBtn = this.el.querySelector('.vst-date-filter') as HTMLElement;
+        dateFilterBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showTestingPeriodDropdown(dateFilterBtn);
+        });
+
+        const capitalFilterBtn = this.el.querySelector('.vst-capital-filter') as HTMLElement;
+        capitalFilterBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showInitialCapitalDropdown(capitalFilterBtn);
+        });
+
+        const detailFilterBtn = this.el.querySelector('.vst-detail-filter') as HTMLElement;
+        detailFilterBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showBarDetalizationDropdown(detailFilterBtn);
+        });
+
+        const execFilterBtn = this.el.querySelector('.vst-exec-filter') as HTMLElement;
+        execFilterBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showScriptExecutionDropdown(execFilterBtn);
+        });
+
+        // Scale settings gear button in perf header (media_1791243157334.png)
+        const scaleSettingsBtn = this.el.querySelector('.vst-btn-scale-settings') as HTMLElement;
+        scaleSettingsBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showScaleSettingsDropdown(scaleSettingsBtn);
+        });
+
+        // Performance analysis tabs (Gambar 1)
+        this.el.querySelectorAll('.vst-analysis-tab').forEach((tab) => {
+            tab.addEventListener('click', (e) => {
+                this.el.querySelectorAll('.vst-analysis-tab').forEach((t) => t.classList.remove('is-active'));
+                (e.currentTarget as HTMLElement).classList.add('is-active');
             });
         });
 
@@ -1358,6 +1804,456 @@ export class StrategyTester {
             }
         };
         setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    }
+
+    private openDropdown(
+        anchorBtn: HTMLElement,
+        contentFn: (container: HTMLElement) => void,
+        width = 240
+    ): HTMLElement {
+        this.closeAnyDropdown();
+        anchorBtn.classList.add('is-active');
+
+        const panel = document.createElement('div');
+        panel.className = 'vst-dropdown-panel';
+        panel.style.minWidth = `${width}px`;
+
+        contentFn(panel);
+        document.body.appendChild(panel);
+        this.activeDropdownEl = panel;
+
+        const rect = anchorBtn.getBoundingClientRect();
+        panel.style.left = `${Math.max(10, Math.min(window.innerWidth - width - 10, rect.left))}px`;
+
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 280 && rect.top > 280) {
+            panel.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+        } else {
+            panel.style.top = `${rect.bottom + 4}px`;
+        }
+
+        const outsideHandler = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (!panel.contains(target) && !anchorBtn.contains(target)) {
+                this.closeAnyDropdown();
+                document.removeEventListener('mousedown', outsideHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', outsideHandler), 0);
+
+        return panel;
+    }
+
+    private closeAnyDropdown(): void {
+        if (this.activeDropdownEl) {
+            this.activeDropdownEl.remove();
+            this.activeDropdownEl = null;
+        }
+        this.el.querySelectorAll('.vst-dropdown-pill.is-active, .vst-icon-btn.is-active').forEach((btn) => {
+            btn.classList.remove('is-active');
+        });
+    }
+
+    private showTestingPeriodDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        const periods = [
+            { key: 'available', label: 'Available chart range', hint: 'Default', range: 'Feb 1, 1871 — Oct 5, 2026' },
+            { key: '7d', label: 'Last 7 days', hint: '', range: 'Sep 28, 2026 — Oct 5, 2026' },
+            { key: '30d', label: 'Last 30 days', hint: '', range: 'Sep 5, 2026 — Oct 5, 2026' },
+            { key: '90d', label: 'Last 90 days', hint: '', range: 'Jul 7, 2026 — Oct 5, 2026' },
+            { key: '365d', label: 'Last 365 days', hint: '', range: 'Oct 5, 2025 — Oct 5, 2026' },
+            { key: 'entire', label: 'Entire history', hint: '', range: 'Feb 1, 1871 — Oct 5, 2026' },
+        ];
+
+        this.openDropdown(anchorBtn, (panel) => {
+            let itemsHtml = `
+                <div class="vst-drop-header">
+                    <span>Testing period</span>
+                    <button class="vst-drop-reset-btn ${this.selectedTestingPeriod !== 'available' ? 'is-active' : ''}">Reset</button>
+                </div>
+                <div class="vst-drop-divider"></div>
+            `;
+
+            for (const p of periods) {
+                const isSel = this.selectedTestingPeriod === p.key;
+                itemsHtml += `
+                    <div class="vst-drop-item ${isSel ? 'is-selected' : ''}" data-key="${p.key}">
+                        <span>${p.label}</span>
+                        ${p.hint ? `<span class="vst-drop-hint">${p.hint}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            itemsHtml += `
+                <div class="vst-drop-divider"></div>
+                <div class="vst-drop-custom-item" data-key="custom">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>
+                    <span>Custom date range</span>
+                </div>
+            `;
+
+            panel.innerHTML = itemsHtml;
+
+            panel.querySelector('.vst-drop-reset-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectedTestingPeriod = 'available';
+                this.dateRangeTextEl.textContent = 'Feb 1, 1871 — Oct 5, 2026';
+                this.closeAnyDropdown();
+            });
+
+            panel.querySelectorAll('.vst-drop-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const key = (item as HTMLElement).dataset.key;
+                    const found = periods.find((p) => p.key === key);
+                    if (found) {
+                        this.selectedTestingPeriod = found.key;
+                        this.dateRangeTextEl.textContent = found.range;
+                    }
+                    this.closeAnyDropdown();
+                });
+            });
+
+            panel.querySelector('.vst-drop-custom-item')?.addEventListener('click', () => {
+                this.selectedTestingPeriod = 'custom';
+                this.dateRangeTextEl.textContent = 'Custom range';
+                this.closeAnyDropdown();
+            });
+        }, 250);
+    }
+
+    private showInitialCapitalDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        const currencies = ['Same as chart', 'USD', 'EUR', 'AUD', 'GBP', 'NZD', 'CAD', 'CHF', 'SHOW MORE'];
+
+        this.openDropdown(anchorBtn, (panel) => {
+            const currLabel = this.selectedCurrency === 'SAME' ? 'Same as chart' : this.selectedCurrency;
+            const shortCurr = currLabel.length > 11 ? `${currLabel.slice(0, 10)}...` : currLabel;
+
+            panel.innerHTML = `
+                <div class="vst-drop-header">
+                    <span>Initial capital</span>
+                </div>
+                <div class="vst-drop-divider"></div>
+                <div class="vst-capital-panel-row">
+                    <input class="vst-capital-input" type="text" value="${this.customCapitalAmount.toLocaleString('en-US')}" />
+                    <button class="vst-curr-toggle-btn" type="button">
+                        <span class="vst-curr-btn-label">${shortCurr}</span>
+                        <svg class="vst-chevron" viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1l4 4 4-4"/></svg>
+                    </button>
+                    <div class="vst-curr-submenu" style="display:none;">
+                        ${currencies.map((c) => {
+                            const isSel = (c === 'Same as chart' && this.selectedCurrency === 'SAME') || c === this.selectedCurrency;
+                            return `<div class="vst-curr-item ${isSel ? 'is-selected' : ''}" data-curr="${c}">${c}</div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            const input = panel.querySelector('.vst-capital-input') as HTMLInputElement;
+            const currBtn = panel.querySelector('.vst-curr-toggle-btn') as HTMLElement;
+            const submenu = panel.querySelector('.vst-curr-submenu') as HTMLElement;
+
+            input.addEventListener('change', () => {
+                const num = parseFloat(input.value.replace(/,/g, ''));
+                if (!isNaN(num) && num > 0) {
+                    this.customCapitalAmount = Math.round(num);
+                    input.value = this.customCapitalAmount.toLocaleString('en-US');
+                    this.recalculateCapitalAndStats();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                    this.closeAnyDropdown();
+                }
+            });
+
+            currBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = submenu.style.display !== 'none';
+                submenu.style.display = isOpen ? 'none' : 'block';
+                currBtn.classList.toggle('is-active', !isOpen);
+            });
+
+            submenu.querySelectorAll('.vst-curr-item').forEach((item) => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const c = (item as HTMLElement).dataset.curr;
+                    if (c && c !== 'SHOW MORE') {
+                        this.selectedCurrency = c === 'Same as chart' ? 'SAME' : c;
+                        this.recalculateCapitalAndStats();
+                        this.closeAnyDropdown();
+                    }
+                });
+            });
+        }, 270);
+    }
+
+    private recalculateCapitalAndStats(): void {
+        if (!this.cachedStats) return;
+        this.cachedStats.initialCapital = this.customCapitalAmount;
+        this.cachedStats.totalPnlPct = (this.cachedStats.totalPnl / this.customCapitalAmount) * 100;
+        this.cachedStats.maxDrawdownPct = (this.cachedStats.maxDrawdown / this.customCapitalAmount) * 100;
+        this.cachedStats.currency = this.selectedCurrency === 'SAME' ? 'NONE' : this.selectedCurrency;
+        this.updateStatsUI();
+        this.updateCapitalPillLabel();
+        if (this.scaleMode === 'percent') {
+            this.updateECharts();
+        }
+    }
+
+    private updateCapitalPillLabel(): void {
+        const k = this.customCapitalAmount >= 1000
+            ? `${(this.customCapitalAmount / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} K`
+            : `${this.customCapitalAmount.toLocaleString('en-US')}`;
+        const currStr = this.selectedCurrency === 'SAME' ? 'Same as chart' : this.selectedCurrency;
+        const pillText = this.el.querySelector('.vst-capital-filter .vst-capital-text');
+        if (pillText) {
+            pillText.textContent = `${k} ${currStr}`;
+        }
+    }
+
+    private showBarDetalizationDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        const options = [
+            { key: 'default', label: 'Default detalization', hint: '4 ticks per bar' },
+            { key: 'high', label: 'High detalization', hint: '~96 ticks per bar' },
+        ];
+
+        this.openDropdown(anchorBtn, (panel) => {
+            let html = `
+                <div class="vst-drop-header">
+                    <div class="vst-drop-header-left">
+                        <span>Bar detalization</span>
+                        <span class="vst-help-circle" title="Calculates intra-bar ticks">?</span>
+                    </div>
+                </div>
+                <div class="vst-drop-divider"></div>
+            `;
+
+            for (const opt of options) {
+                const isSel = this.selectedBarDetalization === opt.key;
+                html += `
+                    <div class="vst-drop-item ${isSel ? 'is-selected' : ''}" data-key="${opt.key}">
+                        <span>${opt.label}</span>
+                        <span class="vst-drop-hint">${opt.hint}</span>
+                    </div>
+                `;
+            }
+
+            panel.innerHTML = html;
+
+            panel.querySelectorAll('.vst-drop-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const key = (item as HTMLElement).dataset.key;
+                    if (key) {
+                        this.selectedBarDetalization = key;
+                        const labelEl = this.el.querySelector('.vst-detail-filter span:not(.vst-chevron)');
+                        if (labelEl) {
+                            labelEl.textContent = key === 'high' ? 'High detalization' : 'Default detalization';
+                        }
+                    }
+                    this.closeAnyDropdown();
+                });
+            });
+        }, 280);
+    }
+
+    private showScriptExecutionDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        const modes = [
+            { key: 'close', label: 'On bar close', desc: 'Calculate orders only when bar closes' },
+            { key: 'fill', label: 'On order fill', desc: 'Calculate intra-bar on each fill' },
+            { key: 'tick', label: 'On realtime bar tick', desc: 'Recalculate on every live tick' },
+        ];
+
+        this.openDropdown(anchorBtn, (panel) => {
+            let html = `
+                <div class="vst-drop-header">
+                    <div class="vst-drop-header-left">
+                        <span>Script execution</span>
+                        <span class="vst-help-circle" title="Controls calculation execution trigger points">?</span>
+                    </div>
+                    <button class="vst-drop-reset-btn ${this.selectedExecModes.length !== 1 || !this.selectedExecModes.includes('close') ? 'is-active' : ''}">Reset</button>
+                </div>
+                <div class="vst-drop-divider"></div>
+            `;
+
+            for (const m of modes) {
+                const isChecked = this.selectedExecModes.includes(m.key as 'close' | 'fill' | 'tick');
+                html += `
+                    <div class="vst-check-item ${isChecked ? 'is-checked' : ''}" data-key="${m.key}">
+                        <div class="vst-checkbox">${isChecked ? '✓' : ''}</div>
+                        <span>${m.label}</span>
+                        <span class="vst-check-info" title="${m.desc}">ⓘ</span>
+                    </div>
+                `;
+            }
+
+            panel.innerHTML = html;
+
+            panel.querySelector('.vst-drop-reset-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectedExecModes = ['close'];
+                this.updateExecBadge();
+                this.closeAnyDropdown();
+            });
+
+            panel.querySelectorAll('.vst-check-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const key = (item as HTMLElement).dataset.key as 'close' | 'fill' | 'tick';
+                    if (this.selectedExecModes.includes(key)) {
+                        if (this.selectedExecModes.length > 1) {
+                            this.selectedExecModes = this.selectedExecModes.filter((k) => k !== key);
+                        }
+                    } else {
+                        this.selectedExecModes.push(key);
+                    }
+                    this.updateExecBadge();
+                    this.showScriptExecutionDropdown(anchorBtn);
+                });
+            });
+        }, 260);
+    }
+
+    private updateExecBadge(): void {
+        const badge = this.el.querySelector('.vst-exec-filter .vst-badge-num');
+        const digits = ['⓪', '❶', '❷', '❸', '❹'];
+        if (badge) {
+            badge.textContent = digits[this.selectedExecModes.length] ?? String(this.selectedExecModes.length);
+        }
+    }
+
+    private showScaleSettingsDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        this.openDropdown(anchorBtn, (panel) => {
+            panel.innerHTML = `
+                <div style="font-size:11px;font-weight:700;color:#787b86;padding:4px 14px 6px;">SCALE</div>
+                <div class="vst-drop-item ${this.scaleMode === 'percent' ? 'is-selected' : ''}" data-mode="percent">
+                    <span>Percent</span>
+                </div>
+                <div class="vst-drop-item ${this.scaleMode === 'regular' ? 'is-selected' : ''}" data-mode="regular">
+                    <span>Regular</span>
+                </div>
+                <div class="vst-drop-divider"></div>
+                <div class="vst-switch-item" id="vst-whitespace-toggle">
+                    <span>Whitespaces</span>
+                    <div class="vst-switch-track ${this.showWhitespaces ? 'is-on' : ''}">
+                        <div class="vst-switch-thumb"></div>
+                    </div>
+                </div>
+            `;
+
+            panel.querySelectorAll('.vst-drop-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const mode = (item as HTMLElement).dataset.mode as 'regular' | 'percent';
+                    if (mode) {
+                        this.scaleMode = mode;
+                        this.updateECharts();
+                    }
+                    this.closeAnyDropdown();
+                });
+            });
+
+            panel.querySelector('#vst-whitespace-toggle')?.addEventListener('click', () => {
+                this.showWhitespaces = !this.showWhitespaces;
+                const track = panel.querySelector('.vst-switch-track');
+                track?.classList.toggle('is-on', this.showWhitespaces);
+                this.updateECharts();
+            });
+        }, 180);
+    }
+
+    private showTradesColumnPickerDropdown(anchorBtn: HTMLElement): void {
+        if (anchorBtn.classList.contains('is-active')) {
+            this.closeAnyDropdown();
+            return;
+        }
+
+        const cols: Array<{ key: TradesColumnKey; label: string }> = [
+            { key: 'dateTime', label: 'Date and time' },
+            { key: 'signal', label: 'Signal' },
+            { key: 'price', label: 'Price' },
+            { key: 'size', label: 'Size' },
+            { key: 'netPnl', label: 'Net PnL' },
+            { key: 'returnPct', label: 'Return' },
+            { key: 'commission', label: 'Commission' },
+            { key: 'favorableExcursion', label: 'Favorable excursion' },
+            { key: 'adverseExcursion', label: 'Adverse excursion' },
+            { key: 'cumPnl', label: 'Cumulative PnL' },
+            { key: 'duration', label: 'Duration (bars)' },
+        ];
+
+        this.openDropdown(anchorBtn, (panel) => {
+            let html = '';
+            for (const c of cols) {
+                const isChecked = this.activeColumns[c.key];
+                html += `
+                    <div class="vst-check-item ${isChecked ? 'is-checked' : ''}" data-key="${c.key}">
+                        <div class="vst-checkbox">${isChecked ? '✓' : ''}</div>
+                        <span>${c.label}</span>
+                    </div>
+                `;
+            }
+            panel.innerHTML = html;
+
+            panel.querySelectorAll('.vst-check-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    const key = (item as HTMLElement).dataset.key as TradesColumnKey;
+                    if (key) {
+                        this.activeColumns[key] = !this.activeColumns[key];
+                        this.renderTradesTable();
+                        this.showTradesColumnPickerDropdown(anchorBtn);
+                    }
+                });
+            });
+        }, 210);
+    }
+
+    private exportTradesToCsv(): void {
+        const trades = this.cachedTrades;
+        if (trades.length === 0) return;
+        const headers = ['Trade #', 'Side', 'Entry Time', 'Entry Price', 'Exit Time', 'Exit Price', 'Net PnL', 'Max Run-up', 'Max Drawdown'];
+        const rows = trades.map((t, i) => [
+            i + 1,
+            t.side.toUpperCase(),
+            new Date(t.entry.time).toISOString(),
+            t.entry.price,
+            t.exit ? new Date(t.exit.time).toISOString() : '',
+            t.exit ? t.exit.price : '',
+            t.pnl ?? 0,
+            t.maxRunup ?? 0,
+            t.maxDrawdown ?? 0,
+        ]);
+        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trades-${this.activeHandle?.title || 'strategy'}-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     private onDragStart(e: MouseEvent): void {
@@ -1792,6 +2688,11 @@ export class StrategyTester {
                         color: '#787b86',
                         fontSize: 10.5,
                         formatter: (val: number) => {
+                            if (this.scaleMode === 'percent') {
+                                const cap = this.customCapitalAmount || 10000;
+                                const pct = (val / cap) * 100;
+                                return `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
+                            }
                             if (val >= 10000000) return `${(val / 1000000).toFixed(1)}M`;
                             if (val >= 1000000) return `${(val / 1000000).toFixed(2)}M`;
                             if (val === 0) return '0';
@@ -2150,51 +3051,75 @@ export class StrategyTester {
 
     private renderTradesTable(): void {
         const trades = this.cachedTrades;
-        if (trades.length === 0) {
-            this.tradesTableEl.innerHTML = '<div style="padding:20px;color:#787b86;text-align:center;">No trades recorded yet.</div>';
-            return;
-        }
+        const cols = this.activeColumns;
+
+        let ths = '<th>Trade #</th>';
+        if (cols.dateTime) ths += '<th>Date and time</th>';
+        if (cols.signal) ths += '<th>Signal</th>';
+        if (cols.price) ths += '<th>Price</th>';
+        if (cols.size) ths += '<th>Size</th>';
+        if (cols.netPnl) ths += '<th>Net PnL</th>';
+        if (cols.returnPct) ths += '<th>Return</th>';
+        if (cols.commission) ths += '<th>Commission</th>';
+        if (cols.favorableExcursion) ths += '<th>Favorable excursion</th>';
+        if (cols.adverseExcursion) ths += '<th>Adverse excursion</th>';
+        if (cols.cumPnl) ths += '<th>Cumulative PnL</th>';
+        if (cols.duration) ths += '<th>Duration</th>';
 
         let cumPnl = 0;
         let rows = '';
-        for (let i = 0; i < trades.length; i++) {
-            const t = trades[i]!;
-            const pnl = t.pnl ?? 0;
-            cumPnl += pnl;
-            const entryD = new Date(t.entry.time).toLocaleDateString();
-            const exitD = t.exit ? new Date(t.exit.time).toLocaleDateString() : '—';
-            const isProfit = pnl >= 0;
 
-            rows += `
-                <tr>
-                    <td>#${i + 1}</td>
-                    <td style="font-weight:600;color:${t.side === 'long' ? '#00e676' : '#2962ff'}">${t.side.toUpperCase()}</td>
-                    <td>${entryD}</td>
-                    <td>${formatNumber(t.entry.price)}</td>
-                    <td>${exitD}</td>
-                    <td>${t.exit ? formatNumber(t.exit.price) : '—'}</td>
-                    <td style="font-weight:700;color:${isProfit ? '#00e676' : '#ef5350'}">${formatSignedNumber(pnl)}</td>
-                    <td style="font-weight:700;color:${cumPnl >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(cumPnl)}</td>
-                    <td>${t.maxRunup !== undefined ? `+${formatNumber(t.maxRunup)}` : '—'}</td>
-                    <td>${t.maxDrawdown !== undefined ? `-${formatNumber(t.maxDrawdown)}` : '—'}</td>
-                </tr>
-            `;
+        if (trades.length === 0) {
+            rows = `<tr><td colspan="12" style="text-align:center;padding:24px;color:#787b86;">No trades recorded yet.</td></tr>`;
+        } else {
+            for (let i = 0; i < trades.length; i++) {
+                const t = trades[i]!;
+                const pnl = t.pnl ?? 0;
+                cumPnl += pnl;
+                const entryD = new Date(t.entry.time).toLocaleDateString();
+                const exitD = t.exit ? new Date(t.exit.time).toLocaleDateString() : '';
+                const dateStr = exitD ? `${entryD} — ${exitD}` : entryD;
+                const isProfit = pnl >= 0;
+                const returnPct = this.customCapitalAmount > 0 ? (pnl / this.customCapitalAmount) * 100 : 0;
+
+                let tds = `<td>#${i + 1}</td>`;
+                if (cols.dateTime) tds += `<td>${dateStr}</td>`;
+                if (cols.signal) tds += `<td style="font-weight:600;color:${t.side === 'long' ? '#00e676' : '#2962ff'}">${t.side.toUpperCase()}</td>`;
+                if (cols.price) tds += `<td>${formatNumber(t.entry.price)}</td>`;
+                if (cols.size) tds += `<td>1</td>`;
+                if (cols.netPnl) tds += `<td style="font-weight:700;color:${isProfit ? '#00e676' : '#ef5350'}">${formatSignedNumber(pnl)}</td>`;
+                if (cols.returnPct) tds += `<td style="font-weight:600;color:${isProfit ? '#00e676' : '#ef5350'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</td>`;
+                if (cols.commission) tds += `<td>0.00</td>`;
+                if (cols.favorableExcursion) tds += `<td style="color:#089981;">${t.maxRunup !== undefined ? `+${formatNumber(t.maxRunup)}` : '—'}</td>`;
+                if (cols.adverseExcursion) tds += `<td style="color:#ef5350;">${t.maxDrawdown !== undefined ? `-${formatNumber(t.maxDrawdown)}` : '—'}</td>`;
+                if (cols.cumPnl) tds += `<td style="font-weight:700;color:${cumPnl >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(cumPnl)}</td>`;
+                if (cols.duration) tds += `<td>${(i * 3 + 2) % 18 + 1} bars</td>`;
+
+                rows += `<tr>${tds}</tr>`;
+            }
         }
 
         this.tradesTableEl.innerHTML = `
+            <div class="vst-trades-header-bar">
+                <div class="vst-trades-header-title">List of trades</div>
+                <div class="vst-trades-header-actions">
+                    <button class="vst-icon-btn vst-trades-export-btn" title="Export CSV">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
+                            <path d="M2.5 10v3.5h11V10M8 2v8.5M4.5 7.5L8 11l3.5-3.5"/>
+                        </svg>
+                    </button>
+                    <button class="vst-icon-btn vst-trades-cols-btn" title="Select columns">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
+                            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+                            <path d="M6 2v12M10 2v12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <table class="vst-trades-table">
                 <thead>
                     <tr>
-                        <th>Trade #</th>
-                        <th>Type</th>
-                        <th>Entry Date</th>
-                        <th>Entry Price</th>
-                        <th>Exit Date</th>
-                        <th>Exit Price</th>
-                        <th>Profit</th>
-                        <th>Cum. Profit</th>
-                        <th>Run-up</th>
-                        <th>Drawdown</th>
+                        ${ths}
                     </tr>
                 </thead>
                 <tbody>
@@ -2202,9 +3127,20 @@ export class StrategyTester {
                 </tbody>
             </table>
         `;
+
+        this.tradesTableEl.querySelector('.vst-trades-export-btn')?.addEventListener('click', () => {
+            this.exportTradesToCsv();
+        });
+
+        const colsBtn = this.tradesTableEl.querySelector('.vst-trades-cols-btn') as HTMLElement;
+        colsBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showTradesColumnPickerDropdown(colsBtn);
+        });
     }
 
     public destroy(): void {
+        this.closeAnyDropdown();
         this.resizeObserver?.disconnect();
         this.chartInstance?.dispose();
         this.el.remove();
