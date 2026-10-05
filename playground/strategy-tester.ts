@@ -51,6 +51,18 @@ function generateReferenceData() {
     const cumPnlData: number[] = [];
     const buyHoldData: number[] = [];
     const tradeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    const mfeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    const realizedBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    const maeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    const runupsDrawdownsRecords: Array<{
+        entryIdx: number;
+        exitIdx: number;
+        pnl: number;
+        val: number;
+        pct: number;
+        entryDateStr: string;
+        exitDateStr: string;
+    }> = [];
     const tradeRecords: StrategyTrade[] = [];
 
     // Pre-calibrated trades matching Image 4 & 5 (40 wins, 51 losses, net PnL +10,326.23, PF 3.13, Max DD 580.66)
@@ -64,6 +76,8 @@ function generateReferenceData() {
         -130.2, -130.2, -130.2, -130.2, -130.2, -130.2, -130.2, -130.2,
         439.93, 439.91
     ];
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     let currentEquity = 0;
     for (let i = 0; i < totalTrades; i++) {
@@ -83,13 +97,79 @@ function generateReferenceData() {
         let bnHVal = initialCapital;
         if (progress > 0.4) {
             const expRise = Math.exp((progress - 0.4) * 1.66 * 6.164);
-            // Add market pullbacks around 1998-2008
             const cycleWave = Math.sin(progress * 18) * 0.15;
             bnHVal = initialCapital * expRise * (1 + cycleWave);
         }
         if (i === totalTrades - 1) bnHVal = 4755654.0;
         buyHoldData.push(Math.round(bnHVal));
 
+        // Dates for trade
+        let entryDateStr = `${months[(month - 1) % 12]} ${Math.max(1, day - 5)}, ${year - 1}`;
+        let exitDateStr = `${months[(month - 1) % 12]} ${day}, ${year}`;
+        let entryTime = new Date(year - 1, (month - 1) % 12, Math.max(1, day - 5)).getTime();
+        let exitTime = new Date(year, (month - 1) % 12, day).getTime();
+
+        // Specific trades matching Image 4 & 5
+        let runupVal = 0;
+        let runupPct = 0;
+        let drawdownVal = 0;
+        let drawdownPct = 0;
+
+        if (i === 0) {
+            // Trade 1 (1899)
+            entryDateStr = 'Mar 12, 1899';
+            exitDateStr = 'Jun 15, 1902';
+            entryTime = new Date(1899, 2, 12).getTime();
+            exitTime = new Date(1902, 5, 15).getTime();
+            drawdownVal = 580.66;
+            drawdownPct = 5.65;
+            runupVal = 35.0;
+            runupPct = 0.35;
+        } else if (i === 43) {
+            // Trade at 1960-1971 (Image 5 exact match!)
+            entryDateStr = 'Dec 22, 1960';
+            exitDateStr = 'Nov 11, 1971';
+            entryTime = new Date(1960, 11, 22).getTime();
+            exitTime = new Date(1971, 10, 11).getTime();
+            runupVal = 1063.63;
+            runupPct = 7.25;
+            drawdownVal = 86.45;
+            drawdownPct = 0.59;
+        } else if (pnl >= 0) {
+            // Calibrate notable peaks matching Image 4: 1935, 1946, 1949, 1975, 1998, 2010
+            if (i === 1) runupVal = 780.0;
+            else if (i === 28) runupVal = 1480.0;
+            else if (i === 33) runupVal = 1350.0;
+            else if (i === 58) runupVal = 1650.0;
+            else if (i === 70) runupVal = 2220.0;
+            else if (i === 78) runupVal = 880.0;
+            else runupVal = Number((pnl * (1.2 + ((i * 5) % 12) * 0.1)).toFixed(2));
+
+            drawdownVal = Number((Math.min(130, Math.max(20, pnl * 0.22))).toFixed(2));
+            runupPct = Number(((runupVal / 14660) * 100).toFixed(2));
+            drawdownPct = Number(((drawdownVal / 14660) * 100).toFixed(2));
+        } else {
+            drawdownVal = Math.abs(pnl);
+            runupVal = Number((Math.max(15, Math.min(80, Math.abs(pnl) * 0.3))).toFixed(2));
+            drawdownPct = Number(((drawdownVal / 10270) * 100).toFixed(2));
+            runupPct = Number(((runupVal / 10270) * 100).toFixed(2));
+        }
+
+        // 1. Discrete trade excursion bars (3-layer multi-tone excursion matching Image 4)
+        mfeBars.push({
+            value: [i, runupVal],
+            itemStyle: { color: 'rgba(8, 153, 129, 0.42)' },
+        });
+        realizedBars.push({
+            value: [i, Number(pnl.toFixed(2))],
+            itemStyle: { color: pnl >= 0 ? '#089981' : '#f23645' },
+        });
+        maeBars.push({
+            value: [i, -drawdownVal],
+            itemStyle: { color: 'rgba(242, 54, 69, 0.72)' },
+        });
+
+        // Simple trade bar fallback
         tradeBars.push({
             value: [i, Number(pnl.toFixed(2))],
             itemStyle: {
@@ -97,8 +177,17 @@ function generateReferenceData() {
             },
         });
 
-        const entryTime = new Date(year, month - 1, 1).getTime();
-        const exitTime = new Date(year, month - 1, day).getTime();
+        // 2. Runups and drawdowns duration record (Image 5)
+        runupsDrawdownsRecords.push({
+            entryIdx: Math.max(0, i - 1),
+            exitIdx: i,
+            pnl,
+            val: pnl >= 0 ? runupVal : drawdownVal,
+            pct: pnl >= 0 ? runupPct : drawdownPct,
+            entryDateStr,
+            exitDateStr,
+        });
+
         tradeRecords.push({
             id: `trade_${i + 1}`,
             side: pnl >= 0 ? 'long' : 'short',
@@ -108,8 +197,8 @@ function generateReferenceData() {
             open: false,
             pnl: Number(pnl.toFixed(2)),
             commission: 0.5,
-            maxDrawdown: Math.abs(pnl < 0 ? pnl * 1.2 : 45),
-            maxRunup: pnl > 0 ? pnl * 1.3 : 15,
+            maxDrawdown: drawdownVal,
+            maxRunup: runupVal,
         });
     }
 
@@ -131,6 +220,10 @@ function generateReferenceData() {
         cumPnlData,
         buyHoldData,
         tradeBars,
+        mfeBars,
+        realizedBars,
+        maeBars,
+        runupsDrawdowns: runupsDrawdownsRecords,
         trades: tradeRecords,
     };
 }
@@ -168,11 +261,20 @@ export class StrategyTester {
     private mode: 'hidden' | 'docked' | 'expanded' | 'maximized' = 'hidden';
     private currentHeight = 340;
     private activeHandle: IndicatorHandle | null = null;
-    private showBuyHold = false;
     private currentView: 'chart' | 'table' = 'chart';
     private isDragging = false;
     private startY = 0;
     private startHeight = 0;
+
+    // Active series toggles (Requirement 4)
+    private activeSeries = {
+        cumPnl: true,
+        buyHold: false,
+        tradesExcursions: true,
+        runupsDrawdowns: false,
+    };
+    private isSeriesCollapsed = false;
+    private hoveredTradeIdx: number | null = null;
 
     // Data cache
     private cachedStats: BacktestSummaryStats | null = null;
@@ -180,6 +282,18 @@ export class StrategyTester {
     private cachedCumPnl: number[] = [];
     private cachedBuyHold: number[] = [];
     private cachedTradeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    private cachedMfeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    private cachedRealizedBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    private cachedMaeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
+    private cachedRunupsDrawdowns: Array<{
+        entryIdx: number;
+        exitIdx: number;
+        pnl: number;
+        val: number;
+        pct: number;
+        entryDateStr: string;
+        exitDateStr: string;
+    }> = [];
     private cachedTrades: StrategyTrade[] = [];
 
     constructor(opts: StrategyTesterOptions) {
@@ -246,11 +360,40 @@ export class StrategyTester {
                             <svg class="vst-chevron" viewBox="0 0 10 6" width="9" height="6" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1l4 4 4-4"/></svg>
                         </button>
                     </div>
+
+                    <!-- Inline stats strip (visible in maximized mode, Image 3) -->
+                    <div class="vst-inline-stats-strip">
+                        <div class="vst-inline-stat-item">
+                            <span class="vst-inline-stat-label">Total PnL</span>
+                            <span class="vst-inline-stat-val is-positive" id="vst-inline-total-pnl">+10,326.23</span>
+                            <span class="vst-inline-stat-curr">NONE</span>
+                            <span class="vst-inline-stat-sub is-positive" id="vst-inline-total-pnl-pct">+103.26%</span>
+                        </div>
+                        <div class="vst-inline-stat-divider">|</div>
+                        <div class="vst-inline-stat-item">
+                            <span class="vst-inline-stat-label">Max drawdown</span>
+                            <span class="vst-inline-stat-val" id="vst-inline-max-dd">580.66</span>
+                            <span class="vst-inline-stat-curr">NONE</span>
+                            <span class="vst-inline-stat-sub" id="vst-inline-max-dd-pct">5.65%</span>
+                        </div>
+                        <div class="vst-inline-stat-divider">|</div>
+                        <div class="vst-inline-stat-item">
+                            <span class="vst-inline-stat-label">Profitable trades</span>
+                            <span class="vst-inline-stat-val" id="vst-inline-win-rate">43.96%</span>
+                            <span class="vst-inline-stat-sub is-muted" id="vst-inline-trades-count">40/91</span>
+                        </div>
+                        <div class="vst-inline-stat-divider">|</div>
+                        <div class="vst-inline-stat-item">
+                            <span class="vst-inline-stat-label">Profit factor</span>
+                            <span class="vst-inline-stat-val" id="vst-inline-profit-factor">3.13</span>
+                        </div>
+                    </div>
+
                     <div class="vst-header-actions">
                         <button class="vst-icon-btn vst-btn-minimize" title="Minimize to bar">
                             <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10"/></svg>
                         </button>
-                        <button class="vst-icon-btn vst-btn-toggle-max" title="Maximize/Restore">
+                        <button class="vst-icon-btn vst-btn-toggle-max" title="Restore/Maximize">
                             <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M2.5 5.5v-3h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3"/>
                             </svg>
@@ -349,42 +492,57 @@ export class StrategyTester {
                             </span>
                         </div>
                         <div class="vst-perf-actions">
-                            <button class="vst-icon-btn vst-perf-settings" title="Chart Settings">
-                                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg>
+                            <button class="vst-icon-btn vst-perf-reset-zoom" title="Reset zoom">
+                                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/></svg>
+                            </button>
+                            <button class="vst-icon-btn vst-btn-strat-settings" title="Strategy properties">
+                                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></svg>
                             </button>
                             <button class="vst-icon-btn vst-perf-screenshot" title="Export image">
                                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h3l1.5-2h3L11 5h3v9H2z"/><circle cx="8" cy="9.5" r="2.5"/></svg>
                             </button>
-                            <button class="vst-icon-btn vst-perf-fullscreen" title="Toggle Fullscreen">
+                            <button class="vst-icon-btn vst-perf-expand-chart" title="Expand chart">
                                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 5.5v-3h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3"/></svg>
                             </button>
                         </div>
                     </div>
 
                     <div class="vst-perf-content">
-                        <!-- Series Toggles Overlay (Image 4 & 5) -->
-                        <div class="vst-series-toggles">
-                            <button class="vst-series-pill is-active" data-series="cumPnl">
-                                <span class="vst-series-label">Cumulative PnL</span>
-                                <span class="vst-series-eye" title="Hide/Show">
-                                    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/></svg>
-                                </span>
+                        <!-- Series Toggles Overlay (Image 3, 4, 5) -->
+                        <div class="vst-series-toggles" id="vst-series-toggles">
+                            <button class="vst-series-pill-compact" id="vst-series-compact-btn" title="Show series (4)" style="display:none;">
+                                <svg viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1l4 4 4-4"/></svg>
+                                <span class="vst-compact-count">4</span>
                             </button>
-                            <button class="vst-series-pill" data-series="buyHold" id="vst-toggle-buyhold" title="Toggle Buy and hold curve">
-                                <span class="vst-series-label">Buy and hold</span>
-                                <span class="vst-series-eye vst-eye-buyhold" title="Hide / Show">
-                                    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>
-                                </span>
-                            </button>
-                            <button class="vst-series-pill is-active" data-series="excursions">
-                                <span class="vst-series-label">Trades excursions</span>
-                            </button>
-                            <button class="vst-series-pill" data-series="drawdowns">
-                                <span class="vst-series-label">Run-ups and drawdowns</span>
-                            </button>
-                            <button class="vst-series-collapse-btn" title="Collapse list">
-                                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10l5-5 5 5"/></svg>
-                            </button>
+                            <div class="vst-series-pills-list" id="vst-series-pills-list">
+                                <button class="vst-series-pill is-active" data-series="cumPnl" title="Toggle Cumulative PnL">
+                                    <span class="vst-series-label">Cumulative PnL</span>
+                                    <span class="vst-series-eye" title="Hide/Show">
+                                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/></svg>
+                                    </span>
+                                </button>
+                                <button class="vst-series-pill" data-series="buyHold" title="Toggle Buy and hold">
+                                    <span class="vst-series-label">Buy and hold</span>
+                                    <span class="vst-series-eye" title="Hide/Show">
+                                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>
+                                    </span>
+                                </button>
+                                <button class="vst-series-pill is-active" data-series="tradesExcursions" title="Toggle Trades excursions">
+                                    <span class="vst-series-label">Trades excursions</span>
+                                    <span class="vst-series-eye" title="Hide/Show">
+                                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/></svg>
+                                    </span>
+                                </button>
+                                <button class="vst-series-pill" data-series="runupsDrawdowns" title="Toggle Run-ups and drawdowns">
+                                    <span class="vst-series-label">Run-ups and drawdowns</span>
+                                    <span class="vst-series-eye" title="Hide/Show">
+                                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>
+                                    </span>
+                                </button>
+                                <button class="vst-series-collapse-btn" id="vst-series-collapse-btn" title="Collapse list">
+                                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10l5-5 5 5"/></svg>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- ECharts Element -->
@@ -456,6 +614,57 @@ export class StrategyTester {
                 right: 0;
                 height: 100% !important;
                 z-index: 32;
+            }
+            .vela-strategy-tester.is-maximized .vst-stats-card-container,
+            .vela-strategy-tester.is-maximized .vst-controls-bar {
+                display: none;
+            }
+            .vela-strategy-tester.is-maximized .vst-inline-stats-strip {
+                display: flex;
+            }
+            .vst-inline-stats-strip {
+                display: none;
+                align-items: center;
+                gap: 12px;
+                font-size: 11px;
+                color: #787b86;
+                margin-left: 14px;
+                flex: 1 1 auto;
+                overflow: hidden;
+            }
+            .vst-inline-stat-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                white-space: nowrap;
+            }
+            .vst-inline-stat-label {
+                color: #787b86;
+            }
+            .vst-inline-stat-val {
+                font-weight: 600;
+                color: #ffffff;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-inline-stat-val.is-positive {
+                color: #00e676;
+            }
+            .vst-inline-stat-val.is-negative {
+                color: #ef5350;
+            }
+            .vst-inline-stat-curr {
+                font-size: 10px;
+                color: #787b86;
+            }
+            .vst-inline-stat-sub.is-positive {
+                color: #00e676;
+                font-weight: 600;
+            }
+            .vst-inline-stat-sub.is-muted {
+                color: #787b86;
+            }
+            .vst-inline-stat-divider {
+                color: #363a45;
             }
 
             /* Resizer */
@@ -758,48 +967,67 @@ export class StrategyTester {
             /* Series Toggles (Image 4 & 5) */
             .vst-series-toggles {
                 position: absolute;
-                top: 8px;
+                top: 6px;
                 left: 16px;
                 z-index: 10;
                 display: flex;
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 4px;
+                gap: 2px;
                 pointer-events: auto;
+            }
+            .vst-series-pills-list {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
             }
             .vst-series-pill {
                 all: unset;
-                display: inline-flex;
+                display: flex;
                 align-items: center;
-                gap: 8px;
-                padding: 3px 8px;
-                border-radius: 4px;
-                background: rgba(27, 28, 33, 0.85);
-                backdrop-filter: blur(4px);
-                border: 1px solid #2a2b30;
-                font-size: 11px;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 11.5px;
                 color: #787b86;
                 cursor: pointer;
-                transition: all 0.15s ease;
+                transition: color 0.12s ease;
+                min-width: 155px;
             }
             .vst-series-pill:hover {
-                color: #ffffff;
-                border-color: #3e414c;
+                color: #d1d4dc;
+                background: rgba(255, 255, 255, 0.04);
             }
             .vst-series-pill.is-active {
+                color: #ffffff;
+                font-weight: 500;
+            }
+            .vst-series-pill-compact {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 2px 7px;
+                border-radius: 4px;
+                background: rgba(27, 28, 33, 0.7);
+                border: 1px solid #2a2b30;
+                font-size: 11px;
                 color: #d1d4dc;
-                font-weight: 600;
+                cursor: pointer;
             }
-            .vst-series-pill[data-series="cumPnl"].is-active {
-                border-left: 2px solid #00e676;
-            }
-            .vst-series-pill[data-series="buyHold"].is-active {
-                border-left: 2px solid #2962ff;
-                color: #2962ff;
+            .vst-series-pill-compact:hover {
+                background: #252830;
+                color: #ffffff;
             }
             .vst-series-eye {
                 display: inline-flex;
-                opacity: 0.75;
+                color: #787b86;
+                opacity: 0.8;
+            }
+            .vst-series-pill.is-active .vst-series-eye {
+                color: #ffffff;
             }
             .vst-series-eye:hover {
                 opacity: 1;
@@ -809,16 +1037,52 @@ export class StrategyTester {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 20px;
-                height: 20px;
-                border-radius: 4px;
-                background: rgba(27, 28, 33, 0.85);
+                width: 18px;
+                height: 18px;
+                margin-top: 2px;
+                border-radius: 3px;
+                background: rgba(27, 28, 33, 0.7);
                 border: 1px solid #2a2b30;
                 color: #787b86;
                 cursor: pointer;
             }
             .vst-series-collapse-btn:hover {
                 color: #ffffff;
+                border-color: #3e414c;
+            }
+
+            /* Tooltip card for Run-ups and drawdowns (Image 5) */
+            .vst-rd-card {
+                background: #1e2025;
+                border: 1px solid #363a45;
+                border-radius: 5px;
+                padding: 8px 12px;
+                color: #d1d4dc;
+                font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, sans-serif;
+                font-size: 11.5px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+                min-width: 170px;
+            }
+            .vst-rd-row1 {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-rd-row2 {
+                display: flex;
+                justify-content: flex-end;
+                color: #787b86;
+                font-size: 11px;
+                margin-top: 2px;
+            }
+            .vst-rd-row3 {
+                margin-top: 8px;
+                color: #787b86;
+                font-size: 10.5px;
+                border-top: 1px solid #282a30;
+                padding-top: 4px;
             }
 
             /* Trades Table */
@@ -859,13 +1123,21 @@ export class StrategyTester {
         // Drag to resize
         this.resizerEl.addEventListener('mousedown', (e) => this.onDragStart(e));
 
-        // Expand button (docked mode)
-        this.el.querySelector('.vst-btn-expand')?.addEventListener('click', () => {
-            this.setMode('expanded');
+        // Dock Bar click (Image 1): clicking green icon, title or expand buttons opens full to top (maximized)
+        this.el.querySelector('.vst-dock-left .vst-strat-icon')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setMode('maximized');
         });
-
-        // Maximize button (docked mode)
-        this.el.querySelector('.vst-btn-maximize')?.addEventListener('click', () => {
+        this.el.querySelector('.vst-dock-title')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setMode('maximized');
+        });
+        this.el.querySelector('.vst-btn-expand')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setMode('maximized');
+        });
+        this.el.querySelector('.vst-btn-maximize')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.setMode('maximized');
         });
 
@@ -874,7 +1146,7 @@ export class StrategyTester {
             this.setMode('docked');
         });
 
-        // Toggle Maximize button
+        // Toggle Maximize button in top header
         this.el.querySelector('.vst-btn-toggle-max')?.addEventListener('click', () => {
             if (this.mode === 'maximized') {
                 this.setMode('expanded');
@@ -883,9 +1155,19 @@ export class StrategyTester {
             }
         });
 
-        // Fullscreen icon in perf header
-        this.el.querySelector('.vst-perf-fullscreen')?.addEventListener('click', () => {
+        // Expand chart icon in performance header (Image 2)
+        this.el.querySelector('.vst-perf-expand-chart')?.addEventListener('click', () => {
             this.setMode(this.mode === 'maximized' ? 'expanded' : 'maximized');
+        });
+
+        // Reset zoom icon in performance header
+        this.el.querySelector('.vst-perf-reset-zoom')?.addEventListener('click', () => {
+            if (!this.chartInstance) return;
+            this.chartInstance.dispatchAction({
+                type: 'dataZoom',
+                start: 0,
+                end: 100,
+            });
         });
 
         // Screenshot icon
@@ -907,20 +1189,34 @@ export class StrategyTester {
             });
         });
 
-        // Buy and hold toggle pill (Image 4 vs 5)
-        const buyHoldBtn = this.el.querySelector('#vst-toggle-buyhold');
-        buyHoldBtn?.addEventListener('click', () => {
-            this.showBuyHold = !this.showBuyHold;
-            buyHoldBtn.classList.toggle('is-active', this.showBuyHold);
-            const eyeSvg = buyHoldBtn.querySelector('.vst-eye-buyhold');
-            if (eyeSvg) {
-                if (this.showBuyHold) {
-                    eyeSvg.innerHTML = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/></svg>`;
-                } else {
-                    eyeSvg.innerHTML = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>`;
+        // Series toggles (Requirement 4: customizable show/hide for all 4 series)
+        this.el.querySelectorAll('.vst-series-pill').forEach((pill) => {
+            pill.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const key = target.dataset.series as keyof typeof this.activeSeries;
+                if (key && key in this.activeSeries) {
+                    this.activeSeries[key] = !this.activeSeries[key];
+                    this.updateSeriesTogglesUI();
+                    this.updateECharts();
                 }
-            }
-            this.updateECharts();
+            });
+        });
+
+        // Collapse / Expand series toggle pills (Image 3 vs 4)
+        this.el.querySelector('#vst-series-collapse-btn')?.addEventListener('click', () => {
+            this.isSeriesCollapsed = true;
+            const list = this.el.querySelector('#vst-series-pills-list') as HTMLElement;
+            const compact = this.el.querySelector('#vst-series-compact-btn') as HTMLElement;
+            if (list) list.style.display = 'none';
+            if (compact) compact.style.display = 'inline-flex';
+        });
+
+        this.el.querySelector('#vst-series-compact-btn')?.addEventListener('click', () => {
+            this.isSeriesCollapsed = false;
+            const list = this.el.querySelector('#vst-series-pills-list') as HTMLElement;
+            const compact = this.el.querySelector('#vst-series-compact-btn') as HTMLElement;
+            if (list) list.style.display = 'flex';
+            if (compact) compact.style.display = 'none';
         });
 
         // Strategy title buttons click (shows strategy selector dropdown)
@@ -931,13 +1227,15 @@ export class StrategyTester {
             });
         });
 
-        // Settings gear button
-        this.el.querySelector('.vst-btn-strat-settings')?.addEventListener('click', () => {
-            const chart = this.getActiveChart();
-            if (chart && 'renderer' in chart) {
-                const withRenderer = chart as unknown as { renderer?: { openSettings?: () => void } };
-                withRenderer.renderer?.openSettings?.();
-            }
+        // Settings gear buttons
+        this.el.querySelectorAll('.vst-btn-strat-settings').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const chart = this.getActiveChart();
+                if (chart && 'renderer' in chart) {
+                    const withRenderer = chart as unknown as { renderer?: { openSettings?: () => void } };
+                    withRenderer.renderer?.openSettings?.();
+                }
+            });
         });
 
         // Setup resize observer on container
@@ -947,6 +1245,30 @@ export class StrategyTester {
             }
         });
         this.resizeObserver.observe(this.chartContainerEl);
+    }
+
+    private updateSeriesTogglesUI(): void {
+        const eyeOpenSvg = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/></svg>`;
+        const eyeSlashSvg = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5-6.5-4.5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>`;
+
+        let activeCount = 0;
+        this.el.querySelectorAll('.vst-series-pill').forEach((pill) => {
+            const key = (pill as HTMLElement).dataset.series as keyof typeof this.activeSeries;
+            if (key && key in this.activeSeries) {
+                const isActive = this.activeSeries[key];
+                if (isActive) activeCount++;
+                pill.classList.toggle('is-active', isActive);
+                const eye = pill.querySelector('.vst-series-eye');
+                if (eye) {
+                    eye.innerHTML = isActive ? eyeOpenSvg : eyeSlashSvg;
+                }
+            }
+        });
+
+        const compactCount = this.el.querySelector('.vst-compact-count');
+        if (compactCount) {
+            compactCount.textContent = String(activeCount || 4);
+        }
     }
 
     private showStrategyDropdown(anchorBtn: HTMLElement): void {
@@ -1084,6 +1406,11 @@ export class StrategyTester {
         this.el.classList.remove('is-open', 'is-absolute', 'is-maximized');
         this.el.style.display = mode === 'hidden' ? 'none' : 'block';
 
+        const expandBtn = this.el.querySelector('.vst-perf-expand-chart');
+        if (expandBtn) {
+            expandBtn.setAttribute('title', mode === 'maximized' ? 'Restore chart' : 'Expand chart');
+        }
+
         if (mode === 'hidden') {
             return;
         }
@@ -1184,6 +1511,12 @@ export class StrategyTester {
             this.cachedCumPnl = [];
             this.cachedBuyHold = [];
             this.cachedTradeBars = [];
+            this.cachedMfeBars = [];
+            this.cachedRealizedBars = [];
+            this.cachedMaeBars = [];
+            this.cachedRunupsDrawdowns = [];
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
             for (let i = 0; i < trades.length; i++) {
                 const t = trades[i]!;
@@ -1197,6 +1530,38 @@ export class StrategyTester {
                         color: p >= 0 ? 'rgba(8, 153, 129, 0.75)' : 'rgba(242, 54, 69, 0.75)',
                     },
                 });
+
+                const runupVal = t.maxRunup ?? (p > 0 ? Number((p * 1.3).toFixed(2)) : Number(Math.max(10, Math.abs(p) * 0.25).toFixed(2)));
+                const drawdownVal = t.maxDrawdown ?? Number((Math.abs(Math.min(0, p * 1.1)) || Math.min(100, Math.abs(p) * 0.2)).toFixed(2));
+                const runupPct = strategy.initialCapital > 0 ? Number(((runupVal / strategy.initialCapital) * 100).toFixed(2)) : 0;
+                const drawdownPct = strategy.initialCapital > 0 ? Number(((drawdownVal / strategy.initialCapital) * 100).toFixed(2)) : 0;
+
+                const entryD = new Date(t.entry.time);
+                const exitD = new Date(t.exit?.time ?? t.entry.time);
+                const entryDateStr = `${months[entryD.getMonth()]} ${entryD.getDate()}, ${entryD.getFullYear()}`;
+                const exitDateStr = `${months[exitD.getMonth()]} ${exitD.getDate()}, ${exitD.getFullYear()}`;
+
+                this.cachedMfeBars.push({
+                    value: [i, runupVal],
+                    itemStyle: { color: 'rgba(8, 153, 129, 0.42)' },
+                });
+                this.cachedRealizedBars.push({
+                    value: [i, Number(p.toFixed(2))],
+                    itemStyle: { color: p >= 0 ? '#089981' : '#f23645' },
+                });
+                this.cachedMaeBars.push({
+                    value: [i, -drawdownVal],
+                    itemStyle: { color: 'rgba(242, 54, 69, 0.72)' },
+                });
+                this.cachedRunupsDrawdowns.push({
+                    entryIdx: Math.max(0, i - 1),
+                    exitIdx: i,
+                    pnl: p,
+                    val: p >= 0 ? runupVal : drawdownVal,
+                    pct: p >= 0 ? runupPct : drawdownPct,
+                    entryDateStr,
+                    exitDateStr,
+                });
             }
         } else {
             // Use realistic demo reference backtest data (matches user screenshots exactly)
@@ -1206,6 +1571,10 @@ export class StrategyTester {
             this.cachedCumPnl = ref.cumPnlData;
             this.cachedBuyHold = ref.buyHoldData;
             this.cachedTradeBars = ref.tradeBars;
+            this.cachedMfeBars = ref.mfeBars;
+            this.cachedRealizedBars = ref.realizedBars;
+            this.cachedMaeBars = ref.maeBars;
+            this.cachedRunupsDrawdowns = ref.runupsDrawdowns;
             this.cachedTrades = ref.trades;
         }
 
@@ -1251,25 +1620,46 @@ export class StrategyTester {
         if (!this.cachedStats) return;
         const s = this.cachedStats;
 
-        // Total PnL
+        // Card container stats
         this.totalPnlEl.textContent = formatSignedNumber(s.totalPnl);
         this.totalPnlEl.className = `vst-stat-val ${s.totalPnl >= 0 ? 'is-positive' : 'is-negative'}`;
         this.totalPnlPctEl.textContent = `${s.totalPnlPct >= 0 ? '+' : ''}${s.totalPnlPct.toFixed(2)}%`;
         this.totalPnlPctEl.className = `vst-stat-sub ${s.totalPnlPct >= 0 ? 'is-positive' : 'is-negative'}`;
 
-        // Max Drawdown
         this.maxDdEl.textContent = formatNumber(s.maxDrawdown);
         this.maxDdPctEl.textContent = `${s.maxDrawdownPct.toFixed(2)}%`;
 
-        // Profitable trades
         this.winRateEl.textContent = `${s.profitableTradesPct.toFixed(2)}%`;
         this.tradesCountEl.textContent = `${s.wins}/${s.totalTrades}`;
 
-        // Profit factor
         this.profitFactorEl.textContent = s.profitFactor.toFixed(2);
-
-        // Date range
         this.dateRangeTextEl.textContent = 'Feb 1, 1871 — Oct 5, 2026';
+
+        // Inline strip stats (maximized mode, Image 3)
+        const inlinePnl = this.el.querySelector('#vst-inline-total-pnl');
+        if (inlinePnl) {
+            inlinePnl.textContent = formatSignedNumber(s.totalPnl);
+            inlinePnl.className = `vst-inline-stat-val ${s.totalPnl >= 0 ? 'is-positive' : 'is-negative'}`;
+        }
+        const inlinePnlPct = this.el.querySelector('#vst-inline-total-pnl-pct');
+        if (inlinePnlPct) {
+            inlinePnlPct.textContent = `${s.totalPnlPct >= 0 ? '+' : ''}${s.totalPnlPct.toFixed(2)}%`;
+            inlinePnlPct.className = `vst-inline-stat-sub ${s.totalPnlPct >= 0 ? 'is-positive' : 'is-negative'}`;
+        }
+        const inlineMaxDd = this.el.querySelector('#vst-inline-max-dd');
+        if (inlineMaxDd) inlineMaxDd.textContent = formatNumber(s.maxDrawdown);
+        const inlineMaxDdPct = this.el.querySelector('#vst-inline-max-dd-pct');
+        if (inlineMaxDdPct) inlineMaxDdPct.textContent = `${s.maxDrawdownPct.toFixed(2)}%`;
+        const inlineWinRate = this.el.querySelector('#vst-inline-win-rate');
+        if (inlineWinRate) inlineWinRate.textContent = `${s.profitableTradesPct.toFixed(2)}%`;
+        const inlineTradesCount = this.el.querySelector('#vst-inline-trades-count');
+        if (inlineTradesCount) inlineTradesCount.textContent = `${s.wins}/${s.totalTrades}`;
+        const inlinePf = this.el.querySelector('#vst-inline-profit-factor');
+        if (inlinePf) inlinePf.textContent = s.profitFactor.toFixed(2);
+
+        this.el.querySelectorAll('.vst-inline-stat-curr, .vst-stat-curr').forEach((currEl) => {
+            currEl.textContent = s.currency || 'NONE';
+        });
     }
 
     private initEChartsIfNeeded(): void {
@@ -1277,6 +1667,31 @@ export class StrategyTester {
             this.chartInstance = echarts.init(this.chartContainerEl, undefined, {
                 renderer: 'canvas',
             });
+
+            // Listen to axisPointer to show guideline bracket lines (Image 5)
+            this.chartInstance.on('updateAxisPointer', (rawEvent: unknown) => {
+                if (!this.activeSeries.runupsDrawdowns || !this.chartInstance) return;
+                const event = rawEvent as { axesInfo?: Array<{ value?: number }>; dataIndex?: number };
+                const dataInfo = event.axesInfo?.[0];
+                const idx = dataInfo?.value ?? event.dataIndex;
+                if (idx !== undefined && typeof idx === 'number' && idx !== this.hoveredTradeIdx) {
+                    this.hoveredTradeIdx = idx;
+                    const rd = this.cachedRunupsDrawdowns[idx] || this.cachedRunupsDrawdowns.find((r) => idx >= r.entryIdx && idx <= r.exitIdx);
+                    if (rd) {
+                        this.chartInstance.setOption({
+                            series: [
+                                {
+                                    name: 'Runups Guidelines',
+                                    markLine: {
+                                        data: [{ xAxis: rd.entryIdx }, { xAxis: rd.exitIdx }],
+                                    },
+                                },
+                            ],
+                        });
+                    }
+                }
+            });
+
             this.updateECharts();
         }
     }
@@ -1287,191 +1702,86 @@ export class StrategyTester {
         const timeline = this.cachedTimeline;
         const cumPnl = this.cachedCumPnl;
         const buyHold = this.cachedBuyHold;
-        const tradeBars = this.cachedTradeBars;
 
         const lastCumPnl = cumPnl[cumPnl.length - 1] ?? 10326.23;
         const lastBuyHold = buyHold[buyHold.length - 1] ?? 4755654.0;
 
-        // Build series list
+        const hasEquity = this.activeSeries.cumPnl || this.activeSeries.buyHold;
+        const hasExcursions = this.activeSeries.tradesExcursions;
+        const hasDrawdowns = this.activeSeries.runupsDrawdowns;
+
+        type CatId = 'equity' | 'excursions' | 'drawdowns';
+        const activeCategories: { id: CatId; gridIndex: number }[] = [];
+        if (hasEquity) activeCategories.push({ id: 'equity', gridIndex: activeCategories.length });
+        if (hasExcursions) activeCategories.push({ id: 'excursions', gridIndex: activeCategories.length });
+        if (hasDrawdowns) activeCategories.push({ id: 'drawdowns', gridIndex: activeCategories.length });
+
+        const gridCount = activeCategories.length;
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const series: any[] = [
-            // 1. Cumulative PnL line (Green)
-            {
-                name: 'Cumulative PnL',
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                data: cumPnl,
-                smooth: 0.15,
-                showSymbol: true,
-                symbol: 'circle',
-                symbolSize: 4.5,
-                itemStyle: {
-                    color: '#00e676',
-                },
-                lineStyle: {
-                    color: '#00e676',
-                    width: 2,
-                },
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: 'rgba(0, 230, 118, 0.15)' },
-                        { offset: 1, color: 'rgba(0, 230, 118, 0.0)' },
-                    ]),
-                },
-                markPoint: {
-                    symbol: 'roundRect',
-                    symbolSize: [75, 20],
-                    data: [
-                        {
-                            coord: [cumPnl.length - 1, lastCumPnl],
-                            value: formatNumber(lastCumPnl),
-                            itemStyle: { color: '#089981' },
-                            label: {
-                                color: '#ffffff',
-                                fontSize: 10.5,
-                                fontWeight: 'bold',
-                                formatter: '{c}',
-                            },
-                        },
-                    ],
-                },
-            },
+        const grids: any[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const xAxis: any[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yAxis: any[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const series: any[] = [];
 
-            // 2. Bottom trade excursion bars
-            {
-                name: 'Trades excursions',
-                type: 'bar',
-                xAxisIndex: 1,
-                yAxisIndex: 1,
-                data: tradeBars,
-                barWidth: 4.5,
-            },
-        ];
-
-        // 3. Buy and hold curve (Blue, toggled via eye icon)
-        if (this.showBuyHold) {
-            series.unshift({
-                name: 'Buy and hold',
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                data: buyHold,
-                smooth: 0.2,
-                showSymbol: false,
-                lineStyle: {
-                    color: '#2962ff',
-                    width: 1.8,
-                },
-                markPoint: {
-                    symbol: 'roundRect',
-                    symbolSize: [85, 20],
-                    data: [
-                        {
-                            coord: [buyHold.length - 1, lastBuyHold],
-                            value: formatNumber(lastBuyHold),
-                            itemStyle: { color: '#2962ff' },
-                            label: {
-                                color: '#ffffff',
-                                fontSize: 10.5,
-                                fontWeight: 'bold',
-                                formatter: '{c}',
-                            },
-                        },
-                    ],
-                },
+        if (gridCount === 0) {
+            grids.push({ left: 24, right: 74, top: 32, bottom: 28 });
+            xAxis.push({
+                type: 'category',
+                gridIndex: 0,
+                data: timeline,
+                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisLabel: { color: '#787b86', fontSize: 10.5 },
             });
+            yAxis.push({
+                type: 'value',
+                gridIndex: 0,
+                position: 'right',
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,0.04)', type: 'dashed' } },
+            });
+        } else if (gridCount === 1) {
+            grids.push({ left: 24, right: 74, top: 32, bottom: 28 });
+        } else if (gridCount === 2) {
+            grids.push(
+                { left: 24, right: 74, top: 32, height: '62%' },
+                { left: 24, right: 74, top: '74%', height: '18%' }
+            );
+        } else {
+            grids.push(
+                { left: 24, right: 74, top: 32, height: '44%' },
+                { left: 24, right: 74, top: '54%', height: '22%' },
+                { left: 24, right: 74, top: '81%', height: '12%' }
+            );
         }
 
-        const option: echarts.EChartsOption = {
-            backgroundColor: '#151619',
-            animation: false,
-            tooltip: {
-                trigger: 'axis',
-                backgroundColor: '#1e2025',
-                borderColor: '#363a45',
-                borderWidth: 1,
-                textStyle: { color: '#d1d4dc', fontSize: 11.5 },
-                axisPointer: {
-                    type: 'cross',
-                    label: {
-                        backgroundColor: '#2a2b30',
-                        color: '#ffffff',
-                    },
-                    lineStyle: {
-                        color: '#4e5260',
-                        type: 'dashed',
-                    },
+        for (let i = 0; i < gridCount; i++) {
+            const cat = activeCategories[i]!;
+            const isBottomGrid = i === gridCount - 1;
+
+            xAxis.push({
+                type: 'category',
+                gridIndex: cat.gridIndex,
+                data: timeline,
+                boundaryGap: cat.id === 'equity' ? false : true,
+                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisTick: { show: false },
+                axisLabel: {
+                    show: isBottomGrid,
+                    color: '#787b86',
+                    fontSize: 10.5,
+                    interval: Math.max(1, Math.floor(timeline.length / 12)),
+                    formatter: (val: string) => val.split('-')[0] || val,
                 },
-                formatter: (params) => {
-                    if (!Array.isArray(params) || params.length === 0) return '';
-                    const idx = params[0]?.dataIndex ?? 0;
-                    const date = timeline[idx] ?? '';
-                    let html = `<div style="font-weight:700;margin-bottom:4px;color:#ffffff;">${date}</div>`;
-                    for (const p of params) {
-                        const val = typeof p.value === 'number' ? p.value : (Array.isArray(p.value) ? p.value[1] : 0);
-                        const color = p.color as string;
-                        html += `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:2px;">
-                            <span style="color:${color}">● ${p.seriesName}:</span>
-                            <span style="font-weight:600;font-variant-numeric:tabular-nums">${formatNumber(Number(val ?? 0))}</span>
-                        </div>`;
-                    }
-                    return html;
-                },
-            },
-            axisPointer: {
-                link: [{ xAxisIndex: 'all' }],
-            },
-            grid: [
-                // Top chart: Equity curves
-                {
-                    left: 20,
-                    right: 70,
-                    top: 24,
-                    height: '66%',
-                },
-                // Bottom chart: Trade excursion bars
-                {
-                    left: 20,
-                    right: 70,
-                    top: '76%',
-                    height: '16%',
-                },
-            ],
-            xAxis: [
-                {
-                    type: 'category',
-                    gridIndex: 0,
-                    data: timeline,
-                    boundaryGap: false,
-                    axisLine: { lineStyle: { color: '#2a2b30' } },
-                    axisTick: { show: false },
-                    axisLabel: { show: false },
-                    splitLine: { show: false },
-                },
-                {
-                    type: 'category',
-                    gridIndex: 1,
-                    data: timeline,
-                    boundaryGap: true,
-                    axisLine: { lineStyle: { color: '#2a2b30' } },
-                    axisTick: { show: false },
-                    axisLabel: {
-                        color: '#787b86',
-                        fontSize: 10.5,
-                        interval: Math.max(1, Math.floor(timeline.length / 10)),
-                        formatter: (val: string) => {
-                            const year = val.split('-')[0];
-                            return year || val;
-                        },
-                    },
-                    splitLine: { show: false },
-                },
-            ],
-            yAxis: [
-                {
+                splitLine: { show: false },
+            });
+
+            if (cat.id === 'equity') {
+                yAxis.push({
                     type: 'value',
-                    gridIndex: 0,
+                    gridIndex: cat.gridIndex,
                     position: 'right',
                     axisLine: { show: false },
                     axisTick: { show: false },
@@ -1488,19 +1798,350 @@ export class StrategyTester {
                             return formatNumber(val, 2);
                         },
                     },
-                },
-                {
+                });
+            } else if (cat.id === 'excursions') {
+                yAxis.push({
                     type: 'value',
-                    gridIndex: 1,
+                    gridIndex: cat.gridIndex,
                     position: 'right',
+                    min: gridCount === 1 ? -500 : undefined,
+                    max: gridCount === 1 ? 3500 : undefined,
+                    interval: gridCount === 1 ? 500 : undefined,
                     axisLine: { show: false },
                     axisTick: { show: false },
                     splitLine: {
                         lineStyle: { color: 'rgba(255, 255, 255, 0.04)', type: 'dashed' },
                     },
-                    axisLabel: { show: false },
+                    axisLabel: {
+                        show: true,
+                        color: '#787b86',
+                        fontSize: 10.5,
+                        formatter: (val: number) => {
+                            if (val === 0) return '0';
+                            return formatNumber(val, 2);
+                        },
+                    },
+                });
+            } else if (cat.id === 'drawdowns') {
+                yAxis.push({
+                    type: 'value',
+                    gridIndex: cat.gridIndex,
+                    position: 'right',
+                    min: gridCount === 1 ? -0.04 : undefined,
+                    max: gridCount === 1 ? 0.04 : undefined,
+                    interval: gridCount === 1 ? 0.02 : undefined,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: {
+                        lineStyle: { color: 'rgba(255, 255, 255, 0.04)', type: 'dashed' },
+                    },
+                    axisLabel: {
+                        show: true,
+                        color: '#787b86',
+                        fontSize: 10.5,
+                        formatter: (val: number) => {
+                            if (val === 0) return '0';
+                            return val.toFixed(2);
+                        },
+                    },
+                });
+            }
+        }
+
+        // 1. Equity series
+        if (hasEquity) {
+            const eqGrid = activeCategories.find((c) => c.id === 'equity')!.gridIndex;
+            if (this.activeSeries.buyHold) {
+                series.push({
+                    name: 'Buy and hold',
+                    type: 'line',
+                    xAxisIndex: eqGrid,
+                    yAxisIndex: eqGrid,
+                    data: buyHold,
+                    smooth: 0.2,
+                    showSymbol: false,
+                    lineStyle: { color: '#2962ff', width: 1.8 },
+                    markPoint: {
+                        symbol: 'roundRect',
+                        symbolSize: [85, 20],
+                        data: [
+                            {
+                                coord: [buyHold.length - 1, lastBuyHold],
+                                value: formatNumber(lastBuyHold),
+                                itemStyle: { color: '#2962ff' },
+                                label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                            },
+                        ],
+                    },
+                });
+            }
+
+            if (this.activeSeries.cumPnl) {
+                series.push({
+                    name: 'Cumulative PnL',
+                    type: 'line',
+                    xAxisIndex: eqGrid,
+                    yAxisIndex: eqGrid,
+                    data: cumPnl,
+                    smooth: 0.15,
+                    showSymbol: true,
+                    symbol: 'circle',
+                    symbolSize: 4.5,
+                    itemStyle: { color: '#00e676' },
+                    lineStyle: { color: '#00e676', width: 2 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(0, 230, 118, 0.15)' },
+                            { offset: 1, color: 'rgba(0, 230, 118, 0.0)' },
+                        ]),
+                    },
+                    markPoint: {
+                        symbol: 'roundRect',
+                        symbolSize: [75, 20],
+                        data: [
+                            {
+                                coord: [cumPnl.length - 1, lastCumPnl],
+                                value: formatSignedNumber(lastCumPnl),
+                                itemStyle: { color: '#089981' },
+                                label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                            },
+                        ],
+                    },
+                });
+            }
+        }
+
+        // 2. Trades excursions series (Image 4)
+        if (hasExcursions) {
+            const excGrid = activeCategories.find((c) => c.id === 'excursions')!.gridIndex;
+            series.push(
+                {
+                    name: 'MAE Excursions',
+                    type: 'bar',
+                    xAxisIndex: excGrid,
+                    yAxisIndex: excGrid,
+                    data: this.cachedMaeBars,
+                    barWidth: 4.5,
+                    barGap: '-100%',
+                    silent: true,
+                },
+                {
+                    name: 'MFE Excursions',
+                    type: 'bar',
+                    xAxisIndex: excGrid,
+                    yAxisIndex: excGrid,
+                    data: this.cachedMfeBars,
+                    barWidth: 4.5,
+                    barGap: '-100%',
+                    silent: true,
+                },
+                {
+                    name: 'Trades excursions',
+                    type: 'bar',
+                    xAxisIndex: excGrid,
+                    yAxisIndex: excGrid,
+                    data: this.cachedRealizedBars,
+                    barWidth: 4.5,
+                    barGap: '-100%',
+                    silent: false,
+                    markLine: {
+                        symbol: 'none',
+                        silent: true,
+                        lineStyle: { color: 'rgba(255, 255, 255, 0.18)', width: 1 },
+                        data: [{ yAxis: 0 }],
+                    },
+                }
+            );
+        }
+
+        // 3. Run-ups and drawdowns series (Image 5)
+        if (hasDrawdowns) {
+            const rdGrid = activeCategories.find((c) => c.id === 'drawdowns')!.gridIndex;
+            series.push(
+                {
+                    name: 'Run-ups and drawdowns',
+                    type: 'custom',
+                    xAxisIndex: rdGrid,
+                    yAxisIndex: rdGrid,
+                    data: this.cachedRunupsDrawdowns.map((r, i) => [r.entryIdx, r.exitIdx, r.pnl, i, r.val, r.pct]),
+                    renderItem: (
+                        _params: echarts.CustomSeriesRenderItemParams,
+                        api: echarts.CustomSeriesRenderItemAPI
+                    ) => {
+                        const entryIdx = Number(api.value(0));
+                        const exitIdx = Number(api.value(1));
+                        const pnl = Number(api.value(2));
+                        const yVal = gridCount === 1 ? -0.038 : 0;
+                        const start = api.coord([entryIdx, yVal]) as [number, number];
+                        const end = api.coord([exitIdx, yVal]) as [number, number];
+                        const x = Math.min(start[0], end[0]);
+                        const w = Math.max(4, Math.abs(end[0] - start[0]));
+                        return {
+                            type: 'rect',
+                            shape: {
+                                x,
+                                y: start[1] - 2.5,
+                                width: w,
+                                height: 5,
+                                r: 1.5,
+                            },
+                            style: {
+                                fill: pnl >= 0 ? '#089981' : '#f23645',
+                            },
+                        };
+                    },
+                },
+                {
+                    name: 'Runups Guidelines',
+                    type: 'line',
+                    xAxisIndex: rdGrid,
+                    yAxisIndex: rdGrid,
+                    data: [],
+                    markLine: {
+                        symbol: 'none',
+                        silent: true,
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.22)',
+                            width: 1,
+                            type: 'solid',
+                        },
+                        data: [],
+                    },
+                }
+            );
+        }
+
+        const option: echarts.EChartsOption = {
+            backgroundColor: '#151619',
+            animation: false,
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 'all',
+                    zoomOnMouseWheel: true,
+                    moveOnMouseMove: true,
                 },
             ],
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'transparent',
+                borderWidth: 0,
+                padding: 0,
+                shadowBlur: 0,
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#2a2b30',
+                        color: '#ffffff',
+                    },
+                    lineStyle: {
+                        color: '#4e5260',
+                        type: 'dashed',
+                    },
+                },
+                formatter: (params) => {
+                    if (!Array.isArray(params) || params.length === 0) return '';
+                    const idx = params[0]?.dataIndex ?? 0;
+                    const date = timeline[idx] ?? '';
+
+                    // If ONLY Run-ups and drawdowns is active (Image 5)
+                    if (gridCount === 1 && hasDrawdowns) {
+                        const rd = this.cachedRunupsDrawdowns[idx] || this.cachedRunupsDrawdowns.find((r) => idx >= r.entryIdx && idx <= r.exitIdx);
+                        if (rd) {
+                            const isRunup = rd.pnl >= 0;
+                            return `
+                                <div class="vst-rd-card">
+                                    <div class="vst-rd-row1">
+                                        <span>${isRunup ? 'Run-up' : 'Drawdown'}</span>
+                                        <span>${formatNumber(rd.val)} <span style="font-size:10px;color:#787b86;">NONE</span></span>
+                                    </div>
+                                    <div class="vst-rd-row2">${rd.pct.toFixed(2)}%</div>
+                                    <div class="vst-rd-row3">${rd.entryDateStr} — ${rd.exitDateStr}</div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    // If ONLY Trades excursions is active (Image 4)
+                    if (gridCount === 1 && hasExcursions) {
+                        const rd = this.cachedRunupsDrawdowns[idx];
+                        const t = this.cachedTrades[idx];
+                        const pnl = t?.pnl ?? (rd ? rd.pnl : 0);
+                        const runupVal = t?.maxRunup ?? (rd ? rd.val : 0);
+                        const drawdownVal = t?.maxDrawdown ?? 0;
+                        const runupPct = rd?.pct ?? 0;
+                        const drawdownPct = rd?.pct ?? 0;
+                        const entryDateStr = rd?.entryDateStr ?? '';
+                        const exitDateStr = rd?.exitDateStr ?? date;
+                        const cumPnlVal = cumPnl[idx] ?? 0;
+
+                        return `
+                            <div style="background:#1e2025;border:1px solid #363a45;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                                <div style="font-weight:700;color:#ffffff;margin-bottom:6px;">Trade #${idx + 1}</div>
+                                <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
+                                    <span style="color:#787b86;">Max run-up:</span>
+                                    <span style="font-weight:600;color:#089981;">+${formatNumber(runupVal)} (${runupPct.toFixed(2)}%)</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
+                                    <span style="color:#787b86;">Max drawdown:</span>
+                                    <span style="font-weight:600;color:#ef5350;">-${formatNumber(drawdownVal)} (${drawdownPct.toFixed(2)}%)</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
+                                    <span style="color:#787b86;">Profit:</span>
+                                    <span style="font-weight:600;color:${pnl >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(pnl)}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
+                                    <span style="color:#787b86;">Accumulated profit:</span>
+                                    <span style="font-weight:600;color:${cumPnlVal >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(cumPnlVal)}</span>
+                                </div>
+                                <div style="border-top:1px solid #282a30;margin-top:6px;padding-top:4px;color:#787b86;font-size:10.5px;">
+                                    ${entryDateStr} — ${exitDateStr}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Combined / Multi-pane tooltip (Image 3)
+                    let html = `
+                        <div style="background:#1e2025;border:1px solid #363a45;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                            <div style="font-weight:700;margin-bottom:4px;color:#ffffff;">${date}</div>
+                    `;
+
+                    for (const p of params) {
+                        if (p.seriesName === 'MAE Excursions' || p.seriesName === 'MFE Excursions' || p.seriesName === 'Runups Guidelines') {
+                            continue;
+                        }
+                        const val = typeof p.value === 'number' ? p.value : (Array.isArray(p.value) ? p.value[1] : 0);
+                        const color = (p.color as string) || '#ffffff';
+                        html += `
+                            <div style="display:flex;justify-content:space-between;gap:12px;margin-top:3px;">
+                                <span style="color:${color}">● ${p.seriesName}:</span>
+                                <span style="font-weight:600;font-variant-numeric:tabular-nums">${formatNumber(Number(val ?? 0))}</span>
+                            </div>
+                        `;
+                    }
+
+                    if (hasExcursions || hasDrawdowns) {
+                        const rd = this.cachedRunupsDrawdowns[idx];
+                        if (rd) {
+                            html += `
+                                <div style="border-top:1px solid #282a30;margin-top:6px;padding-top:4px;color:#787b86;font-size:10.5px;">
+                                    Trade #${idx + 1}: ${rd.entryDateStr} — ${rd.exitDateStr}
+                                </div>
+                            `;
+                        }
+                    }
+
+                    html += `</div>`;
+                    return html;
+                },
+            },
+            axisPointer: {
+                link: [{ xAxisIndex: 'all' }],
+            },
+            grid: grids,
+            xAxis,
+            yAxis,
             series,
         };
 
