@@ -321,8 +321,12 @@ const EDITOR_CSS = `
 .pe-str { color: #00e676; }
 .pe-num { color: #ffa726; }
 .pe-bool { color: #ff5252; font-weight: 600; }
-.pe-com { color: #787b86; font-style: italic; }
-.pe-ver { color: #787b86; font-weight: 700; }
+.pe-com { color: var(--vela-fg-muted, #868a96); font-style: italic; }
+.pe-ver { color: var(--vela-fg-muted, #868a96); font-weight: 700; }
+.pe-textarea::-webkit-scrollbar { width: 6px; height: 6px; }
+.pe-textarea::-webkit-scrollbar-thumb { background: var(--vela-scroll, rgba(255, 255, 255, 0.2)); border-radius: 3px; }
+.pe-textarea::-webkit-scrollbar-track { background: transparent; }
+.pe-textarea { scrollbar-width: thin; scrollbar-color: var(--vela-scroll, rgba(255, 255, 255, 0.2)) transparent; }
 `;
 
 function ensureEditorStyles(): void {
@@ -401,7 +405,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // Script Dropdown Trigger Button
     const scriptBtn = document.createElement('button');
     scriptBtn.style.cssText =
-        'all:unset;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--vela-radius-sm, 4px);background:var(--vela-surface-overlay, #1e222d);border:1px solid var(--vela-border-soft, #2a2e39);color:var(--vela-fg, #d1d4dc);font-size:12px;font-weight:600;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s,border-color 0.15s;';
+        'all:unset;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--vela-radius-sm, 4px);background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg, #d1d4dc);font-size:12px;font-weight:600;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s,border-color 0.15s;';
     const scriptBtnText = document.createElement('span');
     scriptBtnText.style.cssText = 'overflow:hidden;text-overflow:ellipsis;';
     scriptBtnText.textContent = activeScript?.name ?? 'Select Script';
@@ -411,10 +415,12 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     scriptBtn.append(scriptBtnText, scriptBtnChevron);
 
     scriptBtn.onmouseenter = () => {
-        scriptBtn.style.borderColor = 'var(--vela-border, #434651)';
+        scriptBtn.style.background = 'var(--vela-hover, rgba(255, 255, 255, 0.06))';
+        scriptBtn.style.borderColor = 'var(--vela-border-strong, #34353b)';
     };
     scriptBtn.onmouseleave = () => {
-        scriptBtn.style.borderColor = 'var(--vela-border-soft, #2a2e39)';
+        scriptBtn.style.background = 'var(--vela-surface-elev, #1c1d21)';
+        scriptBtn.style.borderColor = 'var(--vela-border, #2a2b30)';
     };
 
     // Run Button (Image 1: prominent white/light pill button with play icon)
@@ -432,7 +438,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     // Thin vertical divider
     const divider = document.createElement('div');
-    divider.style.cssText = 'width:1px;height:16px;background:var(--vela-border, #363a45);margin:0 2px;flex-shrink:0;';
+    divider.style.cssText = 'width:1px;height:16px;background:var(--vela-border, #2a2b30);margin:0 2px;flex-shrink:0;';
 
     // Action Icons (New, Duplicate, Star)
     const actionGroup = document.createElement('div');
@@ -507,7 +513,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Dropdown Popover Menu (Image 2) ──
     const dropdownMenu = document.createElement('div');
     dropdownMenu.style.cssText =
-        'position:absolute;z-index:9999;width:300px;background:#1e222d;border:1px solid #2a2e39;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.6);padding:6px 0;display:none;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#d1d4dc;max-height:380px;overflow-y:auto;';
+        'position:absolute;z-index:9999;width:300px;background:var(--vela-surface-overlay, #1c1d21);border:1px solid var(--vela-border, #2a2b30);border-radius:6px;box-shadow:var(--vela-shadow-dialog, 0 8px 24px rgba(0,0,0,0.6));padding:6px 0;display:none;font-family:inherit;color:var(--vela-fg, #d1d4dc);max-height:380px;overflow-y:auto;';
 
     document.body.appendChild(dropdownMenu);
 
@@ -524,13 +530,13 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Section: FAVORITE SCRIPTS (Image 2)
         const favHeader = document.createElement('div');
-        favHeader.style.cssText = 'padding:6px 12px 4px 12px;font-size:11px;font-weight:700;color:#787b86;letter-spacing:0.5px;text-transform:uppercase;';
+        favHeader.style.cssText = 'padding:6px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;';
         favHeader.textContent = 'FAVORITE SCRIPTS';
         dropdownMenu.appendChild(favHeader);
 
         if (favScripts.length === 0) {
             const emptyFav = document.createElement('div');
-            emptyFav.style.cssText = 'padding:6px 12px 10px 12px;font-size:12px;color:#787b86;line-height:1.4;';
+            emptyFav.style.cssText = 'padding:6px 12px 10px 12px;font-size:12px;color:var(--vela-fg-muted, #868a96);line-height:1.4;';
             emptyFav.textContent = 'No favorite scripts yet — star the script you are editing to list it here.';
             dropdownMenu.appendChild(emptyFav);
         } else {
@@ -542,7 +548,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         // Section: ALL SAVED SCRIPTS (User request: list of saved local pine files)
         const allHeader = document.createElement('div');
         allHeader.style.cssText =
-            'padding:10px 12px 4px 12px;font-size:11px;font-weight:700;color:#787b86;letter-spacing:0.5px;text-transform:uppercase;border-top:1px solid #2a2e39;margin-top:4px;';
+            'padding:10px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;border-top:1px solid var(--vela-border, #2a2b30);margin-top:4px;';
         allHeader.textContent = 'ALL SAVED SCRIPTS';
         dropdownMenu.appendChild(allHeader);
 
@@ -552,15 +558,15 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Bottom row: + New script
         const dividerEl = document.createElement('div');
-        dividerEl.style.cssText = 'height:1px;background:#2a2e39;margin:6px 0;';
+        dividerEl.style.cssText = 'height:1px;background:var(--vela-border, #2a2b30);margin:6px 0;';
         dropdownMenu.appendChild(dividerEl);
 
         const newRow = document.createElement('div');
         newRow.style.cssText =
-            'padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#d1d4dc;cursor:pointer;transition:background 0.15s;';
+            'padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--vela-fg, #d1d4dc);cursor:pointer;transition:background 0.15s;';
         newRow.innerHTML = `<span style="font-size:16px;line-height:1;opacity:0.8;">+</span><span>New script</span>`;
         newRow.onmouseenter = () => {
-            newRow.style.background = '#2a2e39';
+            newRow.style.background = 'var(--vela-hover, rgba(255, 255, 255, 0.06))';
         };
         newRow.onmouseleave = () => {
             newRow.style.background = 'transparent';
@@ -580,12 +586,12 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     function createScriptMenuItem(s: PineScriptItem): HTMLElement {
         const item = document.createElement('div');
         const isActive = s.id === activeScript?.id;
-        item.style.cssText = `padding:6px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;transition:background 0.15s;background:${isActive ? '#262b3d' : 'transparent'};color:${isActive ? '#448aff' : '#d1d4dc'};`;
+        item.style.cssText = `padding:6px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;transition:background 0.15s;background:${isActive ? 'var(--vela-active, rgba(255, 255, 255, 0.08))' : 'transparent'};color:${isActive ? 'var(--vela-accent, #2962ff)' : 'var(--vela-fg, #d1d4dc)'};`;
 
         const nameSpan = document.createElement('div');
         nameSpan.style.cssText = 'display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;';
         if (isActive) {
-            nameSpan.innerHTML = `<span style="color:#2962ff;font-size:10px;">●</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;">${s.name}</span>`;
+            nameSpan.innerHTML = `<span style="color:var(--vela-accent, #2962ff);font-size:10px;">●</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;">${s.name}</span>`;
         } else {
             nameSpan.innerHTML = `<span style="opacity:0.3;font-size:10px;">○</span><span style="overflow:hidden;text-overflow:ellipsis;">${s.name}</span>`;
         }
@@ -595,7 +601,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Star toggle
         const starToggle = document.createElement('button');
-        starToggle.style.cssText = 'all:unset;cursor:pointer;display:inline-flex;align-items:center;color:#787b86;';
+        starToggle.style.cssText = 'all:unset;cursor:pointer;display:inline-flex;align-items:center;color:var(--vela-fg-muted, #868a96);';
         starToggle.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${s.isFavorite ? '#ffeb3b' : 'none'}" stroke="${s.isFavorite ? '#ffeb3b' : 'currentColor'}" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
         starToggle.onclick = (e) => {
             e.stopPropagation();
@@ -604,15 +610,15 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Trash delete
         const trashBtn = document.createElement('button');
-        trashBtn.style.cssText = 'all:unset;cursor:pointer;display:inline-flex;align-items:center;color:#787b86;opacity:0.6;';
+        trashBtn.style.cssText = 'all:unset;cursor:pointer;display:inline-flex;align-items:center;color:var(--vela-fg-muted, #868a96);opacity:0.6;';
         trashBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         trashBtn.title = 'Delete script';
         trashBtn.onmouseenter = () => {
-            trashBtn.style.color = '#ff5252';
+            trashBtn.style.color = 'var(--vela-down, #ff5252)';
             trashBtn.style.opacity = '1';
         };
         trashBtn.onmouseleave = () => {
-            trashBtn.style.color = '#787b86';
+            trashBtn.style.color = 'var(--vela-fg-muted, #868a96)';
             trashBtn.style.opacity = '0.6';
         };
         trashBtn.onclick = (e) => {
@@ -626,7 +632,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         item.append(nameSpan, iconsRight);
 
         item.onmouseenter = () => {
-            if (!isActive) item.style.background = '#2a2e39';
+            if (!isActive) item.style.background = 'var(--vela-hover, rgba(255, 255, 255, 0.05))';
         };
         item.onmouseleave = () => {
             if (!isActive) item.style.background = 'transparent';
@@ -668,15 +674,17 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     window.addEventListener('click', onWindowClick);
 
     // ── Body & Code Editor Layout ──
-    body.style.cssText = 'padding:0;margin:0;display:flex;flex-direction:column;height:100%;overflow:hidden;background:#131722;color:#d1d4dc;';
+    body.style.cssText =
+        'padding:0;margin:0;display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--vela-bg, #151619);color:var(--vela-fg, #d1d4dc);font-family:var(--vela-font, sans-serif);';
 
     const editorContainer = document.createElement('div');
-    editorContainer.style.cssText = 'display:flex;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:#131722;';
+    editorContainer.style.cssText =
+        'display:flex;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:var(--vela-bg, #151619);';
 
     // Line Numbers Gutter
     const gutter = document.createElement('div');
     gutter.style.cssText =
-        'width:42px;flex-shrink:0;background:#131722;border-right:1px solid #1e222d;padding:12px 6px;text-align:right;user-select:none;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;color:#50535e;overflow:hidden;';
+        'width:42px;flex-shrink:0;background:var(--vela-bg, #151619);border-right:1px solid var(--vela-border, #2a2b30);padding:12px 6px;text-align:right;user-select:none;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;color:var(--vela-fg-muted, #868a96);overflow:hidden;box-sizing:border-box;';
 
     // Code Editor Wrapper (holds overlay + textarea + minimap)
     const codeAreaWrapper = document.createElement('div');
@@ -685,28 +693,34 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // Active line background highlight
     const activeLineBar = document.createElement('div');
     activeLineBar.style.cssText =
-        'position:absolute;left:0;right:0;height:22px;background:rgba(41, 98, 255, 0.12);pointer-events:none;z-index:1;display:none;';
+        'position:absolute;left:0;right:0;height:22px;background:var(--vela-hover, rgba(255, 255, 255, 0.04));pointer-events:none;z-index:1;display:none;';
 
     // Highlighted code display
     const codeHighlight = document.createElement('pre');
     codeHighlight.style.cssText =
-        'position:absolute;inset:0;margin:0;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;white-space:pre;pointer-events:none;z-index:2;overflow:hidden;box-sizing:border-box;color:#d1d4dc;';
+        'position:absolute;inset:0;margin:0;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;white-space:pre;pointer-events:none;z-index:2;overflow:hidden;box-sizing:border-box;color:var(--vela-fg, #d1d4dc);';
 
     // Transparent interactive textarea
     const textarea = document.createElement('textarea');
+    textarea.className = 'pe-textarea';
+    textarea.spellcheck = false;
+    textarea.setAttribute('spellcheck', 'false');
+    textarea.setAttribute('autocorrect', 'off');
+    textarea.setAttribute('autocapitalize', 'off');
+    textarea.setAttribute('autocomplete', 'off');
     textarea.style.cssText =
-        'position:absolute;inset:0;margin:0;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;white-space:pre;background:transparent;color:transparent;caret-color:#ffffff;resize:none;border:none;outline:none;tab-size:4;overflow:auto;spellcheck:false;z-index:3;box-sizing:border-box;';
+        'position:absolute;inset:0;margin:0;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;white-space:pre;background:transparent;color:transparent;caret-color:var(--vela-fg-bright, #ffffff);resize:none;border:none;outline:none;tab-size:4;overflow:auto;z-index:3;box-sizing:border-box;';
     textarea.value = currentCode;
 
     // Minimap (right edge)
     const minimap = document.createElement('div');
     minimap.style.cssText =
-        'width:46px;flex-shrink:0;background:#161a25;border-left:1px solid #1e222d;position:relative;overflow:hidden;user-select:none;cursor:pointer;';
+        'width:42px;flex-shrink:0;background:transparent;border-left:1px solid var(--vela-border, #2a2b30);position:relative;overflow:hidden;user-select:none;cursor:pointer;';
     const minimapCanvas = document.createElement('canvas');
     minimapCanvas.style.cssText = 'width:100%;height:100%;display:block;';
     const minimapSlider = document.createElement('div');
     minimapSlider.style.cssText =
-        'position:absolute;left:0;right:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);pointer-events:none;';
+        'position:absolute;left:0;right:0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);pointer-events:none;';
     minimap.append(minimapCanvas, minimapSlider);
 
     codeAreaWrapper.append(activeLineBar, codeHighlight, textarea);
@@ -715,17 +729,17 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Bottom Status Bar (Image 1) ──
     const statusBar = document.createElement('div');
     statusBar.style.cssText =
-        'height:28px;flex-shrink:0;background:#131722;border-top:1px solid #1e222d;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#787b86;';
+        'height:28px;flex-shrink:0;background:var(--vela-bg, #151619);border-top:1px solid var(--vela-border, #2a2b30);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:11px;font-family:inherit;color:var(--vela-fg-muted, #868a96);';
 
     // Left: Logs toggle button (Image 1: ▾ Logs 0)
     const logsBtn = document.createElement('button');
     logsBtn.style.cssText =
-        'all:unset;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:3px;background:#1e222d;border:1px solid #2a2e39;color:#787b86;font-size:11px;cursor:pointer;transition:color 0.15s,background 0.15s;';
+        'all:unset;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg-muted, #868a96);font-size:11px;cursor:pointer;transition:color 0.15s,background 0.15s;';
     logsBtn.innerHTML = `<span>▾ Logs</span> <span style="font-weight:700;">0</span>`;
     logsBtn.onclick = () => {
         logsOpen = !logsOpen;
         logsDrawer.style.display = logsOpen ? 'flex' : 'none';
-        logsBtn.style.color = logsOpen ? '#d1d4dc' : '#787b86';
+        logsBtn.style.color = logsOpen ? 'var(--vela-fg-bright, #ffffff)' : 'var(--vela-fg-muted, #868a96)';
     };
 
     // Right: Pine v5 badge & Status text (Image 1: Pine v5 | ✓ EMA Golden Cross Strategy on the chart)
@@ -733,11 +747,13 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     statusRight.style.cssText = 'display:flex;align-items:center;gap:8px;overflow:hidden;';
 
     const versionBadge = document.createElement('span');
-    versionBadge.style.cssText = 'padding:2px 6px;border-radius:3px;background:#1e222d;border:1px solid #2a2e39;color:#787b86;font-size:11px;';
+    versionBadge.style.cssText =
+        'padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg-muted, #868a96);font-size:11px;';
     versionBadge.textContent = 'Pine v5';
 
     const statusMsg = document.createElement('span');
-    statusMsg.style.cssText = 'font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2962ff;';
+    statusMsg.style.cssText =
+        'font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--vela-accent, #2962ff);';
     statusMsg.textContent = activeScript ? `✓ ${activeScript.name} ready` : '✓ Ready';
 
     statusRight.append(versionBadge, statusMsg);
@@ -746,13 +762,14 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Logs Console Drawer (collapsible) ──
     const logsDrawer = document.createElement('div');
     logsDrawer.style.cssText =
-        'height:120px;flex-shrink:0;background:#0d1017;border-top:1px solid #2a2e39;display:none;flex-direction:column;font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:#d1d4dc;';
+        'height:120px;flex-shrink:0;background:var(--vela-surface-sunken, #151619);border-top:1px solid var(--vela-border, #2a2b30);display:none;flex-direction:column;font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:var(--vela-fg, #d1d4dc);';
 
     const logsHeader = document.createElement('div');
-    logsHeader.style.cssText = 'padding:4px 10px;background:#161a25;border-bottom:1px solid #2a2e39;display:flex;align-items:center;justify-content:space-between;color:#787b86;font-size:10px;';
+    logsHeader.style.cssText =
+        'padding:4px 10px;background:var(--vela-surface-elev, #1c1d21);border-bottom:1px solid var(--vela-border, #2a2b30);display:flex;align-items:center;justify-content:space-between;color:var(--vela-fg-muted, #868a96);font-size:10px;';
     logsHeader.innerHTML = `<span>CONSOLE OUTPUT</span>`;
     const clearLogsBtn = document.createElement('button');
-    clearLogsBtn.style.cssText = 'all:unset;cursor:pointer;color:#787b86;hover:color:#d1d4dc;';
+    clearLogsBtn.style.cssText = 'all:unset;cursor:pointer;color:var(--vela-fg-muted, #868a96);';
     clearLogsBtn.textContent = 'Clear';
     clearLogsBtn.onclick = () => {
         logEntries = [];
@@ -818,10 +835,10 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         for (let i = 0; i < gutterChildren.length; i++) {
             const child = gutterChildren[i] as HTMLElement;
             if (i === lineIdx) {
-                child.style.color = '#ffffff';
+                child.style.color = 'var(--vela-fg-bright, #ffffff)';
                 child.style.fontWeight = '700';
             } else {
-                child.style.color = '#50535e';
+                child.style.color = 'var(--vela-fg-muted, #868a96)';
                 child.style.fontWeight = 'normal';
             }
         }
@@ -845,8 +862,8 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
             if (line.trim().length === 0) return;
             const y = i * lineH;
             const isComment = /^\s*\/\//.test(line);
-            ctx2d.fillStyle = isComment ? '#787b86' : '#2979ff';
-            const lw = Math.min(w - 6, Math.max(8, line.trim().length * 1.5));
+            ctx2d.fillStyle = isComment ? 'rgba(134, 138, 150, 0.35)' : 'rgba(41, 121, 255, 0.45)';
+            const lw = Math.min(w - 6, Math.max(8, line.trim().length * 1.2));
             ctx2d.fillRect(3, y, lw, lineH - 0.5);
         });
 
@@ -857,6 +874,8 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         const sliderH = Math.max(16, viewRatio * h);
         minimapSlider.style.top = `${sliderTop}px`;
         minimapSlider.style.height = `${sliderH}px`;
+        minimapSlider.style.background = 'rgba(255, 255, 255, 0.05)';
+        minimapSlider.style.borderColor = 'rgba(255, 255, 255, 0.12)';
     }
 
     // Scroll synchronization
