@@ -59,15 +59,18 @@ every meaningful change, plus the playground proof for anything a browser can ob
 ## The playground
 
 `npm run playground` → http://localhost:5192 (Vela OS uses 5190, Vela-pro 5191) — the Vela
-widget + Binance provider (public API, no key, no server) with Pine served by THIS
-package's `PineWorkerEngine`, engine sources straight from `src/` (vite, HMR). An EMA is
-on from the first paint; `window.__workerSpawns >= 1` proves Pine runs off the main
-thread. The **"Code" topbar entry** (right-hand cluster) opens a popup — a plain textarea,
-Run, and an inline status — that executes arbitrary Pine through the addon engine via
-`chart.runIndicator` (injected only on success, so a failing script shows its compile or
-runtime error instead of leaving a dead legend row). It is the fastest way to try a
-script against the engine, and it doubles as the SDK showcase (contributed widget action
-+ kit `Dialog`). Every option the page does not set sits in it commented at its default —
+workspace (`VelaWorkspace`, single-chart `layout: '1'` from the first paint) + Binance
+provider (public API, no key, no server) with Pine served by THIS package's
+`PineWorkerEngine`, engine sources straight from `src/` (vite, HMR). An EMA is on from
+the first paint; `window.__workerSpawns >= 1` proves Pine runs off the main thread. The
+layout picker (topbar, next to style) is the workspace's own: grid canvas up to 4×4 +
+Symbol/Interval/Crosshair/Style sync switches; clicking a cell makes it active (ring)
+and every toolbar action routes there. The **"Code" topbar entry** (right-hand cluster)
+opens a popup — a plain textarea, Run, and an inline status — that executes arbitrary
+Pine through the addon engine via `chart.runIndicator` (injected only on success, so a
+failing script shows its compile or runtime error instead of leaving a dead legend row).
+It is the fastest way to try a script against the engine, and it doubles as the SDK
+showcase (contributed widget action + kit `Dialog`). Every option the page does not set sits in it commented at its default —
 uncomment to explore rather than hunting the docs.
 
 Verification rules from Vela's guide apply with full force: prove painted reality

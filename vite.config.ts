@@ -22,11 +22,11 @@ export default defineConfig({
             resolveId(id: string, importer?: string) {
                 if (!id.startsWith('inline-worker:')) return undefined;
                 const entry = resolve(dirname(importer ?? ''), id.slice('inline-worker:'.length));
-                return `\0inline-worker\0${entry}`;
+                return `\0inline-worker:${entry}`;
             },
             async load(id: string) {
-                if (!id.startsWith('\0inline-worker\0')) return undefined;
-                const entry = id.slice('\0inline-worker\0'.length);
+                if (!id.startsWith('\0inline-worker:')) return undefined;
+                const entry = id.slice('\0inline-worker:'.length);
                 const out = await esbuild.build({
                     entryPoints: [entry],
                     bundle: true,

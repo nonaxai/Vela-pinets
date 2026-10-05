@@ -189,9 +189,11 @@ npm test             # vitest
 npm run build        # tsup → dist/
 ```
 
-The playground is the Vela widget plus this package's `PineWorkerEngine` (HMR,
-engine sources from `src/`). An EMA is on from the first paint; the **Code**
-topbar entry runs arbitrary Pine through `chart.runIndicator`.
+The playground is the Vela workspace (`VelaWorkspace`, single chart from the first
+paint) plus this package's `PineWorkerEngine` (HMR, engine sources from `src/`). An
+EMA is on from the first paint; the **Code** topbar entry runs arbitrary Pine through
+`chart.runIndicator`, and the layout picker opens multi-chart grids (click a cell to
+focus it — toolbar actions route there).
 
 Vela is consumed as `file:../Vela` (built dist): clone this repo next to
 [Vela](https://github.com/LuxAlgo/Vela) and build Vela first.
