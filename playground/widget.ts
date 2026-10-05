@@ -17,6 +17,7 @@ import {
 } from '@luxalgo/vela/plugin';
 import { Dialog } from '@luxalgo/vela/ui';
 import { PineWorkerEngine } from '../src';
+import { mountPineEditor } from './pine-editor';
 
 // App-wide default engine registration: any new chart or workspace cell automatically
 // uses PineWorkerEngine for 'pine' scripts.
@@ -240,88 +241,12 @@ registerSidePanel({
     id: 'pinets.scripts',
     title: 'Pine Scripts',
     icon: 'code',
-    width: 320,
+    width: 520,
+    minWidth: 380,
+    maxWidth: 900,
     resizable: true,
-    mount: (ctx, body) => {
-        body.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:10px;font-family:sans-serif;color:var(--vela-fg);';
-
-        const intro = document.createElement('p');
-        intro.style.cssText = 'margin:0;font-size:12px;color:var(--vela-fg-muted);line-height:1.4;';
-        intro.textContent = 'Ready-to-use Pine Script templates. Click Apply to inject into the active chart:';
-        body.appendChild(intro);
-
-        const templates = [
-            {
-                name: 'EMA Ribbons (20/50/100/200)',
-                script: `//@version=5
-indicator("EMA Ribbon", overlay=true)
-plot(ta.ema(close, 20), color=#00E676, title="EMA 20")
-plot(ta.ema(close, 50), color=#2979FF, title="EMA 50")
-plot(ta.ema(close, 100), color=#FF9100, title="EMA 100")
-plot(ta.ema(close, 200), color=#FF1744, title="EMA 200")`,
-            },
-            {
-                name: 'SuperTrend',
-                script: `//@version=5
-indicator("Supertrend", overlay=true)
-[supertrend, direction] = ta.supertrend(3, 10)
-plot(direction < 0 ? supertrend : na, "Up Trend", color=color.green, style=plot.style_linebr)
-plot(direction > 0 ? supertrend : na, "Down Trend", color=color.red, style=plot.style_linebr)`,
-            },
-            {
-                name: 'Stochastic Oscillator',
-                script: `//@version=5
-indicator("Stochastic", overlay=false)
-k = ta.sma(ta.stoch(close, high, low, 14), 3)
-d = ta.sma(k, 3)
-plot(k, "%K", color=#2962FF)
-plot(d, "%D", color=#FF6D00)
-h0 = hline(80, "Upper", color=#787B86)
-h1 = hline(20, "Lower", color=#787B86)
-fill(h0, h1, color=color.rgb(33, 150, 243, 90))`,
-            },
-        ];
-
-        for (const t of templates) {
-            const card = document.createElement('div');
-            card.style.cssText =
-                'border:1px solid var(--vela-border-soft);border-radius:var(--vela-radius-md);padding:10px;background:var(--vela-surface-overlay);display:flex;flex-direction:column;gap:8px;';
-
-            const title = document.createElement('div');
-            title.style.cssText = 'font-weight:600;font-size:13px;';
-            title.textContent = t.name;
-
-            const btn = document.createElement('button');
-            btn.textContent = 'Apply to Chart';
-            btn.style.cssText =
-                'all:unset;text-align:center;padding:5px 10px;border-radius:var(--vela-radius-sm);background:var(--vela-surface-elevated);border:1px solid var(--vela-border);font-size:11px;font-weight:600;cursor:pointer;';
-            btn.onmouseenter = () => {
-                btn.style.background = 'var(--vela-accent)';
-                btn.style.color = '#0b0e14';
-            };
-            btn.onmouseleave = () => {
-                btn.style.background = 'var(--vela-surface-elevated)';
-                btn.style.color = 'inherit';
-            };
-            btn.onclick = async () => {
-                btn.textContent = 'Applying…';
-                const r = await ctx.chart.runIndicator(t.script);
-                if (r.ok) {
-                    btn.textContent = '✓ Applied';
-                    ctx.toast(`Added ${t.name}`, 'success');
-                    setTimeout(() => {
-                        btn.textContent = 'Apply to Chart';
-                    }, 2000);
-                } else {
-                    btn.textContent = 'Error';
-                    ctx.toast(r.error!.message, 'error');
-                }
-            };
-
-            card.append(title, btn);
-            body.appendChild(card);
-        }
-    },
+    overlay: true,
+    mount: (ctx, body, header) => mountPineEditor(ctx, body, header),
 });
 
 // The workspace is already built — project freshly registered actions + panels into its chrome.

@@ -1,0 +1,25 @@
+//@version=5
+strategy("EMA Golden Cross Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// Input parameter untuk panjang EMA
+shortLength = input.int(50, title="Fast EMA Length")
+longLength = input.int(200, title="Slow EMA Length")
+
+// Hitung nilai EMA
+shortEMA = ta.ema(close, shortLength)
+longEMA = ta.ema(close, longLength)
+
+// Kondisi Golden Cross (Beli) dan Death Cross (Jual)
+longCondition = ta.crossover(shortEMA, longEMA)
+shortCondition = ta.crossunder(shortEMA, longEMA)
+
+// Eksekusi Order
+if (longCondition)
+    strategy.entry("Golden Cross BUY", strategy.long)
+
+if (shortCondition)
+    strategy.entry("Death Cross SELL", strategy.short)
+
+// Plot garis EMA ke chart
+plot(shortEMA, title="Fast EMA", color=color.blue, linewidth=2)
+plot(longEMA, title="Slow EMA", color=color.orange, linewidth=2)

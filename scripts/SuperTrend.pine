@@ -1,0 +1,5 @@
+//@version=5
+indicator("Supertrend", overlay=true)
+[supertrend, direction] = ta.supertrend(3, 10)
+plot(direction < 0 ? supertrend : na, "Up Trend", color=color.green, style=plot.style_linebr)
+plot(direction > 0 ? supertrend : na, "Down Trend", color=color.red, style=plot.style_linebr)
