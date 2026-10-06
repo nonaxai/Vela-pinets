@@ -339,6 +339,13 @@ export class StrategyTester {
     private isSeriesCollapsed = false;
     private hoveredTradeIdx: number | null = null;
 
+    // Chart zoom & snapshot cache (preserves scroll/zoom position during ticks)
+    private savedZoomState: { start?: number; end?: number; startValue?: number; endValue?: number } | null = null;
+    private lastProcessedHandleId: string | undefined = undefined;
+    private lastProcessedTradesCount = -1;
+    private lastProcessedTradePnl: number | null = null;
+    private lastProcessedSnapState: 'pine' | 'demo' | null = null;
+
     // Data cache
     private cachedStats: BacktestSummaryStats | null = null;
     private cachedTimeline: string[] = [];
@@ -690,7 +697,7 @@ export class StrategyTester {
             .vela-strategy-tester {
                 position: relative;
                 width: 100%;
-                background: #0f0f0f;
+                background: #000000;
                 color: #d1d4dc;
                 font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
                 font-size: 13px;
@@ -816,7 +823,7 @@ export class StrategyTester {
                 justify-content: space-between;
                 height: 34px;
                 padding: 0 12px;
-                background: #0f0f0f;
+                background: #000000;
             }
             .vst-dock-left, .vst-dock-right {
                 display: flex;
@@ -867,7 +874,7 @@ export class StrategyTester {
                 display: none;
                 flex-direction: column;
                 height: 100%;
-                background: #0f0f0f;
+                background: #000000;
                 overflow: hidden;
             }
             .vela-strategy-tester.is-open .vst-drawer-body {
@@ -885,7 +892,7 @@ export class StrategyTester {
                 height: 42px;
                 min-height: 42px;
                 padding: 0 16px;
-                background: #0f0f0f;
+                background: #000000;
                 border-bottom: 1px solid #2e2e2e;
                 flex: none;
                 flex-shrink: 0;
@@ -923,7 +930,7 @@ export class StrategyTester {
                 height: 48px;
                 min-height: 48px;
                 padding: 0 16px;
-                background: #0f0f0f;
+                background: #000000;
                 border-bottom: 1px solid #2e2e2e;
                 overflow-x: auto;
                 overflow-y: hidden;
@@ -1002,7 +1009,7 @@ export class StrategyTester {
                 height: 17px;
                 border-radius: 50%;
                 background: #f0f3fa;
-                color: #0f0f0f;
+                color: #000000;
                 font-size: 11px;
                 font-weight: 700;
                 line-height: 1;
@@ -1018,7 +1025,7 @@ export class StrategyTester {
             /* Key stats */
             .vst-stats-card-container {
                 padding: 16px 20px 14px 20px;
-                background: #0f0f0f;
+                background: #000000;
                 border-bottom: 1px solid #2e2e2e;
                 flex: none;
             }
@@ -1085,6 +1092,7 @@ export class StrategyTester {
                 min-height: 0;
                 overflow-y: auto;
                 overflow-x: hidden;
+                background: #000000;
             }
             .vela-strategy-tester.is-chart-expanded .vst-perf-view {
                 overflow: hidden !important;
@@ -1096,7 +1104,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: none;
                 height: 340px;
-                background: #0f0f0f;
+                background: #000000;
                 overflow: hidden;
             }
             .vst-perf-header {
@@ -1269,7 +1277,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: 1 1 0px;
                 min-height: 0;
-                background: #0f0f0f;
+                background: #000000;
                 overflow: hidden;
             }
             .vst-trades-table-container {
@@ -1277,7 +1285,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: 1 1 0px;
                 min-height: 0;
-                background: #0f0f0f;
+                background: #000000;
                 overflow: hidden;
             }
             .vst-trades-header-bar {
@@ -1288,7 +1296,7 @@ export class StrategyTester {
                 min-height: 42px;
                 padding: 0 20px;
                 border-bottom: 1px solid #2e2e2e;
-                background: #0f0f0f;
+                background: #000000;
                 flex: none;
                 flex-shrink: 0;
             }
@@ -1341,7 +1349,7 @@ export class StrategyTester {
             /* Performance Analysis Section (media_1791250134285.png) */
             .vst-analysis-section {
                 padding: 16px 20px 24px 20px;
-                background: #0f0f0f;
+                background: #000000;
                 border-top: 1px solid #2e2e2e;
                 flex: none;
             }
@@ -1380,7 +1388,7 @@ export class StrategyTester {
             }
             .vst-analysis-tab.is-active {
                 background: #ffffff !important;
-                color: #0f0f0f !important;
+                color: #000000 !important;
                 border-color: #ffffff !important;
                 font-weight: 600 !important;
             }
@@ -1640,7 +1648,7 @@ export class StrategyTester {
                 position: relative;
                 width: 100%;
                 height: 270px;
-                background: #0f0f0f;
+                background: #000000;
             }
             .vst-analysis-chart {
                 width: 100%;
@@ -1761,7 +1769,7 @@ export class StrategyTester {
             /* Trades Analysis (media_1791250361342.png) */
             .vst-trades-analysis-section {
                 padding: 16px 20px 24px 20px;
-                background: #0f0f0f;
+                background: #000000;
                 border-top: 1px solid #2e2e2e;
                 flex: none;
             }
@@ -1930,12 +1938,12 @@ export class StrategyTester {
             }
             .vst-drop-item.is-selected {
                 background: #f0f3fa;
-                color: #0f0f0f;
+                color: #000000;
                 font-weight: 600;
             }
             .vst-drop-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #0f0f0f;
+                color: #000000;
             }
             .vst-drop-hint {
                 font-size: 12px;
@@ -2039,12 +2047,12 @@ export class StrategyTester {
             }
             .vst-curr-item.is-selected {
                 background: #f0f3fa;
-                color: #0f0f0f;
+                color: #000000;
                 font-weight: 600;
             }
             .vst-curr-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #0f0f0f;
+                color: #000000;
             }
 
             /* Checkboxes (Script execution & Columns) */
@@ -2146,7 +2154,7 @@ export class StrategyTester {
             }
             .vst-switch-track.is-on .vst-switch-thumb {
                 transform: translateX(14px);
-                background: #0f0f0f;
+                background: #000000;
             }
         `;
         document.head.appendChild(style);
@@ -2196,6 +2204,7 @@ export class StrategyTester {
         // Double click on chart container resets zoom
         this.chartContainerEl.addEventListener('dblclick', () => {
             if (!this.chartInstance) return;
+            this.savedZoomState = null;
             this.chartInstance.dispatchAction({
                 type: 'dataZoom',
                 start: 0,
@@ -2206,7 +2215,7 @@ export class StrategyTester {
         // Screenshot icon
         this.el.querySelector('.vst-perf-screenshot')?.addEventListener('click', () => {
             if (!this.chartInstance) return;
-            const url = this.chartInstance.getDataURL({ pixelRatio: 2, backgroundColor: '#0f0f0f' });
+            const url = this.chartInstance.getDataURL({ pixelRatio: 2, backgroundColor: '#000000' });
             const a = document.createElement('a');
             a.href = url;
             a.download = `backtest-${this.activeHandle?.title || 'strategy'}-${Date.now()}.png`;
@@ -3095,6 +3104,13 @@ export class StrategyTester {
      * When handle is null or hidden, hides the panel.
      */
     public async bindStrategy(handle: IndicatorHandle | null): Promise<void> {
+        if (this.activeHandle?.id !== handle?.id) {
+            this.savedZoomState = null;
+            this.lastProcessedHandleId = undefined;
+            this.lastProcessedTradesCount = -1;
+            this.lastProcessedTradePnl = null;
+            this.lastProcessedSnapState = null;
+        }
         this.activeHandle = handle;
 
         if (!handle || !handle.visible) {
@@ -3124,6 +3140,27 @@ export class StrategyTester {
     private processSnapshot(snap: EngineContextSnapshot | null): void {
         const strategy = snap?.strategy;
         const trades = snap?.trades ?? [];
+
+        const tradesCount = trades.length;
+        const lastTradePnl = trades.length > 0 ? (trades[trades.length - 1]?.pnl ?? null) : null;
+        const handleId = this.activeHandle?.id;
+        const snapState = trades.length > 0 && strategy ? 'pine' : 'demo';
+
+        const isUnchanged = (
+            handleId === this.lastProcessedHandleId &&
+            tradesCount === this.lastProcessedTradesCount &&
+            lastTradePnl === this.lastProcessedTradePnl &&
+            this.lastProcessedSnapState === snapState
+        );
+
+        if (isUnchanged && this.chartInstance) {
+            return;
+        }
+
+        this.lastProcessedHandleId = handleId;
+        this.lastProcessedTradesCount = tradesCount;
+        this.lastProcessedTradePnl = lastTradePnl;
+        this.lastProcessedSnapState = snapState;
 
         if (trades.length > 0 && strategy) {
             // Real backtest data from PineTS
@@ -3559,14 +3596,18 @@ export class StrategyTester {
                 const tooltipWidth = tooltipEl.offsetWidth || 205;
                 const tooltipHeight = tooltipEl.offsetHeight || 105;
 
-                // Horizontal position: center tooltip on cursor X
-                const cursorX = e.clientX - bodyRect.left;
+                // Horizontal position:
+                // If hovering outside the track (e.g. over the title / label), anchor beak to the zero line divider (30% of bar track)
+                const zeroDividerX = (trackRect.left + trackRect.width * 0.3) - bodyRect.left;
+                const isOverTrack = barTrack && e.clientX >= trackRect.left && e.clientX <= trackRect.right;
+                const targetX = isOverTrack ? (e.clientX - bodyRect.left) : zeroDividerX;
+
                 const minLeft = 8;
                 const maxLeft = bodyRect.width - tooltipWidth - 8;
-                const tooltipLeft = Math.max(minLeft, Math.min(cursorX - tooltipWidth / 2, maxLeft));
+                const tooltipLeft = Math.max(minLeft, Math.min(targetX - tooltipWidth / 2, maxLeft));
 
-                // Beak points at cursor X
-                const beakX = Math.max(14, Math.min(cursorX - tooltipLeft, tooltipWidth - 14));
+                // Beak points at targetX
+                const beakX = Math.max(14, Math.min(targetX - tooltipLeft, tooltipWidth - 14));
                 beakEl.style.left = `${beakX}px`;
 
                 // Vertical position: right above the row
@@ -4896,6 +4937,26 @@ export class StrategyTester {
                 renderer: 'canvas',
             });
 
+            // Listen to dataZoom events to preserve user scroll / zoom level
+            this.chartInstance.on('dataZoom', (rawEvent: unknown) => {
+                const event = rawEvent as {
+                    start?: number;
+                    end?: number;
+                    startValue?: number;
+                    endValue?: number;
+                    batch?: Array<{ start?: number; end?: number; startValue?: number; endValue?: number }>;
+                };
+                const item = event.batch ? event.batch[0] : event;
+                if (item) {
+                    this.savedZoomState = {
+                        start: item.start,
+                        end: item.end,
+                        startValue: item.startValue,
+                        endValue: item.endValue,
+                    };
+                }
+            });
+
             // Listen to axisPointer to show guideline bracket lines (Image 5)
             this.chartInstance.on('updateAxisPointer', (rawEvent: unknown) => {
                 if (!this.activeSeries.runupsDrawdowns || !this.chartInstance) return;
@@ -5355,17 +5416,48 @@ export class StrategyTester {
             );
         }
 
+        // Query current zoom if not already captured
+        if (this.chartInstance) {
+            try {
+                const curOpt = this.chartInstance.getOption() as {
+                    dataZoom?: Array<{ start?: number; end?: number; startValue?: number; endValue?: number }>;
+                };
+                if (curOpt?.dataZoom?.[0]) {
+                    const dz = curOpt.dataZoom[0];
+                    if (dz.start !== undefined || dz.startValue !== undefined) {
+                        this.savedZoomState = {
+                            start: dz.start,
+                            end: dz.end,
+                            startValue: dz.startValue,
+                            endValue: dz.endValue,
+                        };
+                    }
+                }
+            } catch {
+                // Ignore chart state read failure
+            }
+        }
+
+        const dataZoomConfig: echarts.DataZoomComponentOption = {
+            type: 'inside',
+            xAxisIndex: 'all',
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+        };
+        if (this.savedZoomState) {
+            if (this.savedZoomState.start !== undefined && this.savedZoomState.end !== undefined) {
+                dataZoomConfig.start = this.savedZoomState.start;
+                dataZoomConfig.end = this.savedZoomState.end;
+            } else if (this.savedZoomState.startValue !== undefined && this.savedZoomState.endValue !== undefined) {
+                dataZoomConfig.startValue = this.savedZoomState.startValue;
+                dataZoomConfig.endValue = this.savedZoomState.endValue;
+            }
+        }
+
         const option: echarts.EChartsOption = {
-            backgroundColor: '#0f0f0f',
+            backgroundColor: '#000000',
             animation: false,
-            dataZoom: [
-                {
-                    type: 'inside',
-                    xAxisIndex: 'all',
-                    zoomOnMouseWheel: true,
-                    moveOnMouseMove: true,
-                },
-            ],
+            dataZoom: [dataZoomConfig],
             tooltip: {
                 trigger: 'axis',
                 backgroundColor: 'transparent',
