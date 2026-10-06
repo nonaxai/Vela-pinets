@@ -20,6 +20,8 @@ export interface BacktestSummaryStats {
     profitFactor: number;
     initialCapital: number;
     currency: string;
+    grossProfit?: number;
+    grossLoss?: number;
 }
 
 /** Formats a numeric value with commas and fixed decimals */
@@ -216,6 +218,8 @@ function generateReferenceData() {
             profitFactor: targetProfitFactor,
             initialCapital,
             currency: 'NONE',
+            grossProfit: 15173.24,
+            grossLoss: 4847.01,
         },
         timeline,
         timestamps,
@@ -253,8 +257,10 @@ export class StrategyTester {
     private resizerEl!: HTMLElement;
     private dockBarEl!: HTMLElement;
     private drawerBodyEl!: HTMLElement;
+    private perfViewEl!: HTMLElement;
     private perfSectionEl!: HTMLElement;
     private analysisSectionEl!: HTMLElement;
+    private analysisBodyEl!: HTMLElement;
     private tradesSectionEl!: HTMLElement;
     private chartContainerEl!: HTMLElement;
     private tradesTableEl!: HTMLElement;
@@ -271,13 +277,20 @@ export class StrategyTester {
     private stratNameTabEl!: HTMLElement;
     private dateRangeTextEl!: HTMLElement;
 
-    // ECharts instance
+    // ECharts instances
     private chartInstance: echarts.ECharts | null = null;
+    private periodicalChartInstance: echarts.ECharts | null = null;
+    private benchmarkingChartInstance: echarts.ECharts | null = null;
+    private growthDeclineChartInstance: echarts.ECharts | null = null;
     private resizeObserver: ResizeObserver | null = null;
 
     // State
     private mode: 'hidden' | 'docked' | 'expanded' | 'maximized' = 'hidden';
     private isChartExpanded = false;
+    private activeAnalysisTab: 'breakdown' | 'periodical' | 'benchmarking' | 'margin-usage' | 'growth-decline' = 'breakdown';
+    private breakdownSubMode: 'signals' | 'side' = 'signals';
+    private periodicalMode: 'weekly' | 'quarterly' | 'yearly' = 'weekly';
+    private benchmarkingMode: 'weekly' | 'quarterly' | 'yearly' = 'weekly';
     private currentHeight = 520;
     private activeHandle: IndicatorHandle | null = null;
     private currentView: 'chart' | 'table' = 'chart';
@@ -494,8 +507,10 @@ export class StrategyTester {
                     </button>
                 </div>
 
-                <!-- Key Stats Section -->
-                <div class="vst-stats-card-container">
+                <!-- Performance View (Scrollable container in chart mode) -->
+                <div class="vst-perf-view">
+                    <!-- Key Stats Section -->
+                    <div class="vst-stats-card-container">
                     <div class="vst-stats-title">Key stats</div>
                     <div class="vst-stats-grid">
                         <div class="vst-stat-card">
@@ -598,7 +613,7 @@ export class StrategyTester {
                     </div>
                 </div>
 
-                <!-- Performance Analysis Section (Gambar 1) -->
+                <!-- Performance Analysis Section (media_1791250134285.png) -->
                 <div class="vst-analysis-section">
                     <div class="vst-analysis-title">Performance analysis</div>
                     <div class="vst-analysis-tabs">
@@ -608,7 +623,9 @@ export class StrategyTester {
                         <button class="vst-analysis-tab" data-tab="margin-usage">Margin usage</button>
                         <button class="vst-analysis-tab" data-tab="growth-decline">Growth and decline</button>
                     </div>
+                    <div class="vst-analysis-body" id="vst-analysis-body"></div>
                 </div>
+            </div>
 
                 <!-- Trades List Section (Dedicated Table View, media_1791243438337.png) -->
                 <div class="vst-trades-section" style="display:none;">
@@ -620,8 +637,10 @@ export class StrategyTester {
         this.resizerEl = this.el.querySelector('.vst-resizer')!;
         this.dockBarEl = this.el.querySelector('.vst-dock-bar')!;
         this.drawerBodyEl = this.el.querySelector('.vst-drawer-body')!;
+        this.perfViewEl = this.el.querySelector('.vst-perf-view')!;
         this.perfSectionEl = this.el.querySelector('.vst-perf-section')!;
         this.analysisSectionEl = this.el.querySelector('.vst-analysis-section')!;
+        this.analysisBodyEl = this.el.querySelector('#vst-analysis-body')!;
         this.tradesSectionEl = this.el.querySelector('.vst-trades-section')!;
         this.chartContainerEl = this.el.querySelector('#vst-echarts')!;
         this.tradesTableEl = this.el.querySelector('.vst-trades-table-container')!;
@@ -1036,12 +1055,25 @@ export class StrategyTester {
                 color: #787b86;
             }
 
+            /* Performance View */
+            .vst-perf-view {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 0px;
+                min-height: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-view {
+                overflow: hidden !important;
+            }
+
             /* Performance Section */
             .vst-perf-section {
                 display: flex;
                 flex-direction: column;
-                flex: 1 1 0px;
-                min-height: 140px;
+                flex: none;
+                height: 340px;
                 background: #151619;
                 overflow: hidden;
             }
@@ -1284,9 +1316,9 @@ export class StrategyTester {
                 background: rgba(255, 255, 255, 0.04);
             }
 
-            /* Performance Analysis Section (Gambar 1) */
+            /* Performance Analysis Section (media_1791250134285.png) */
             .vst-analysis-section {
-                padding: 14px 20px 18px 20px;
+                padding: 16px 20px 24px 20px;
                 background: #151619;
                 border-top: 1px solid #2a2b30;
                 flex: none;
@@ -1302,17 +1334,18 @@ export class StrategyTester {
                 align-items: center;
                 gap: 8px;
                 flex-wrap: wrap;
+                margin-bottom: 4px;
             }
             .vst-analysis-tab {
                 all: unset;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                height: 32px;
+                height: 30px;
                 padding: 0 16px;
-                border-radius: 16px;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                border-radius: 15px;
+                background: #2a2e39;
+                border: 1px solid transparent;
                 color: #868a96;
                 font-size: 13px;
                 font-weight: 500;
@@ -1320,14 +1353,318 @@ export class StrategyTester {
                 transition: all 0.15s ease;
             }
             .vst-analysis-tab:hover {
-                background: #2a2e39;
-                color: #f0f3fa;
+                background: #363a45;
+                color: #ffffff;
             }
             .vst-analysis-tab.is-active {
-                background: #2a2e39;
-                color: #f0f3fa;
-                border-color: #34353b;
+                background: #ffffff !important;
+                color: #131722 !important;
+                border-color: #ffffff !important;
+                font-weight: 600 !important;
+            }
+            .vst-analysis-metrics-row {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                padding: 16px 0 20px 0;
+            }
+            .vst-analysis-metric-col {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .vst-analysis-metric-label {
+                font-size: 12px;
+                color: #787b86;
+                font-weight: 400;
+            }
+            .vst-analysis-metric-val-wrap {
+                display: flex;
+                align-items: baseline;
+                gap: 5px;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-analysis-metric-val {
+                font-size: 14px;
                 font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-analysis-metric-val.is-positive {
+                color: #089981;
+            }
+            .vst-analysis-metric-val.is-negative {
+                color: #f23645;
+            }
+            .vst-analysis-metric-unit {
+                font-size: 11px;
+                color: #787b86;
+                font-weight: 500;
+            }
+            .vst-analysis-metric-sub {
+                font-size: 12px;
+                color: #787b86;
+                font-weight: 400;
+            }
+            .vst-analysis-metric-sub.is-positive {
+                color: #089981;
+            }
+            .vst-analysis-metric-sub.is-negative {
+                color: #f23645;
+            }
+            .vst-analysis-subnav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+            .vst-analysis-subtitle {
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-segmented-toggle {
+                display: inline-flex;
+                align-items: center;
+                background: #1e2025;
+                border-radius: 6px;
+                padding: 2px;
+                border: 1px solid #2a2b30;
+            }
+            .vst-toggle-btn {
+                all: unset;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+                color: #787b86;
+                cursor: pointer;
+                transition: all 0.12s ease;
+            }
+            .vst-toggle-btn:hover {
+                color: #d1d4dc;
+            }
+            .vst-toggle-btn.is-active {
+                background: #363a45;
+                color: #ffffff;
+                font-weight: 600;
+            }
+
+            /* Breakdown List */
+            .vst-breakdown-list {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .vst-breakdown-row {
+                display: flex;
+                align-items: center;
+                height: 34px;
+                padding: 0 8px;
+                border-radius: 6px;
+                transition: background 0.12s ease;
+            }
+            .vst-breakdown-row:hover {
+                background: rgba(255, 255, 255, 0.03);
+            }
+            .vst-breakdown-label {
+                width: 160px;
+                flex: none;
+                font-size: 13px;
+                font-weight: 500;
+                color: #d1d4dc;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vst-breakdown-bar-track {
+                flex: 1;
+                position: relative;
+                height: 18px;
+                margin: 0 20px;
+                display: flex;
+                align-items: center;
+            }
+            .vst-breakdown-guide-line {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 50%;
+                height: 1px;
+                background: #232731;
+            }
+            .vst-breakdown-zero-line {
+                position: absolute;
+                left: 30%;
+                top: 0;
+                bottom: 0;
+                width: 1px;
+                background: #363a45;
+                z-index: 2;
+            }
+            .vst-breakdown-loss-group {
+                position: absolute;
+                right: 70%;
+                top: 4px;
+                bottom: 4px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                z-index: 3;
+            }
+            .vst-breakdown-profit-group {
+                position: absolute;
+                left: 30%;
+                top: 4px;
+                bottom: 4px;
+                display: flex;
+                align-items: center;
+                z-index: 3;
+            }
+            .vst-breakdown-bar-segment {
+                height: 10px;
+            }
+            .vst-breakdown-val-col {
+                width: 150px;
+                flex: none;
+                text-align: right;
+                font-size: 13px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-breakdown-val-col.is-positive {
+                color: #089981;
+            }
+            .vst-breakdown-val-col.is-negative {
+                color: #f23645;
+            }
+            .vst-breakdown-val-col .vst-unit {
+                color: #787b86;
+                font-size: 11px;
+                font-weight: 400;
+                margin-left: 4px;
+            }
+
+            /* Analysis Chart Wrapper (Periodical & Benchmarking) */
+            .vst-analysis-chart-wrapper {
+                position: relative;
+                width: 100%;
+                height: 270px;
+                background: #151619;
+            }
+            .vst-analysis-chart {
+                width: 100%;
+                height: 100%;
+            }
+            .vst-analysis-nav-btn {
+                all: unset;
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 26px;
+                height: 26px;
+                border-radius: 4px;
+                background: rgba(30, 32, 37, 0.85);
+                border: 1px solid #2a2b30;
+                color: #868a96;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 10;
+                transition: all 0.15s ease;
+            }
+            .vst-analysis-nav-btn:hover {
+                background: #2a2e39;
+                color: #ffffff;
+                border-color: #363a45;
+            }
+            .vst-analysis-nav-btn.vst-nav-prev {
+                left: 4px;
+            }
+            .vst-analysis-nav-btn.vst-nav-next {
+                right: 4px;
+            }
+
+            /* Empty state (Margin usage) */
+            .vst-empty-state {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 48px 0;
+                gap: 14px;
+            }
+            .vst-ufo-cow-icon {
+                opacity: 0.8;
+            }
+            .vst-empty-text {
+                font-size: 13px;
+                color: #787b86;
+                font-weight: 500;
+            }
+
+            /* Growth & Decline */
+            .vst-growth-decline-grid {
+                display: grid;
+                grid-template-columns: 1.25fr 1fr;
+                gap: 32px;
+            }
+            .vst-gd-chart-card, .vst-gd-comparison-card {
+                display: flex;
+                flex-direction: column;
+            }
+            .vst-gd-echarts-container {
+                width: 100%;
+                height: 260px;
+            }
+            .vst-gd-comp-section {
+                margin-top: 10px;
+                margin-bottom: 14px;
+            }
+            .vst-gd-comp-heading {
+                font-size: 12px;
+                color: #787b86;
+                margin-bottom: 10px;
+            }
+            .vst-gd-comp-row {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 8px;
+                font-size: 12px;
+            }
+            .vst-gd-comp-label {
+                width: 75px;
+                color: #787b86;
+                flex: none;
+            }
+            .vst-gd-comp-bar-track {
+                flex: 1;
+                height: 14px;
+                background: transparent;
+                display: flex;
+                align-items: center;
+            }
+            .vst-gd-comp-bar {
+                height: 14px;
+                border-radius: 2px;
+            }
+            .vst-gd-comp-bar.is-runup {
+                background: #089981;
+            }
+            .vst-gd-comp-bar.is-drawdown {
+                background: #f23645;
+            }
+            .vst-gd-comp-bar.is-cur-drawdown {
+                background: #8b2631;
+            }
+            .vst-gd-comp-val {
+                width: 55px;
+                text-align: right;
+                font-size: 12px;
+                font-weight: 500;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
             }
 
             /* Dropdowns (Gambar 3, 4, 5) */
@@ -1783,11 +2120,14 @@ export class StrategyTester {
             this.showScaleSettingsDropdown(scaleSettingsBtn);
         });
 
-        // Performance analysis tabs (Gambar 1)
+        // Performance analysis tabs (media_1791250134285.png)
         this.el.querySelectorAll('.vst-analysis-tab').forEach((tab) => {
             tab.addEventListener('click', (e) => {
-                this.el.querySelectorAll('.vst-analysis-tab').forEach((t) => t.classList.remove('is-active'));
-                (e.currentTarget as HTMLElement).classList.add('is-active');
+                const target = e.currentTarget as HTMLElement;
+                const tabKey = target.dataset.tab as 'breakdown' | 'periodical' | 'benchmarking' | 'margin-usage' | 'growth-decline';
+                if (tabKey) {
+                    this.setAnalysisTab(tabKey);
+                }
             });
         });
 
@@ -1796,8 +2136,14 @@ export class StrategyTester {
             if (this.chartInstance && this.mode !== 'hidden') {
                 this.chartInstance.resize();
             }
+            this.periodicalChartInstance?.resize();
+            this.benchmarkingChartInstance?.resize();
+            this.growthDeclineChartInstance?.resize();
         });
         this.resizeObserver.observe(this.chartContainerEl);
+        if (this.analysisBodyEl) {
+            this.resizeObserver.observe(this.analysisBodyEl);
+        }
     }
 
     private updateSeriesTogglesUI(): void {
@@ -2468,6 +2814,9 @@ export class StrategyTester {
 
         setTimeout(() => {
             this.chartInstance?.resize();
+            this.periodicalChartInstance?.resize();
+            this.benchmarkingChartInstance?.resize();
+            this.growthDeclineChartInstance?.resize();
         }, 10);
     }
 
@@ -2497,11 +2846,16 @@ export class StrategyTester {
             btn.classList.toggle('is-active', (btn as HTMLElement).dataset.view === view);
         });
         if (view === 'chart') {
+            if (this.perfViewEl) this.perfViewEl.style.display = 'flex';
             this.perfSectionEl.style.display = 'flex';
             this.analysisSectionEl.style.display = this.isChartExpanded ? 'none' : 'block';
             this.tradesSectionEl.style.display = 'none';
             this.chartInstance?.resize();
+            this.periodicalChartInstance?.resize();
+            this.benchmarkingChartInstance?.resize();
+            this.growthDeclineChartInstance?.resize();
         } else {
+            if (this.perfViewEl) this.perfViewEl.style.display = 'none';
             this.perfSectionEl.style.display = 'none';
             this.analysisSectionEl.style.display = 'none';
             this.tradesSectionEl.style.display = 'flex';
@@ -2637,6 +2991,7 @@ export class StrategyTester {
 
         this.updateStatsUI();
         this.updateECharts();
+        this.renderAnalysisSection();
         if (this.currentView === 'table') {
             this.renderTradesTable();
         }
@@ -2670,7 +3025,859 @@ export class StrategyTester {
             profitFactor,
             initialCapital,
             currency: 'NONE',
+            grossProfit,
+            grossLoss,
         };
+    }
+
+    public setAnalysisTab(tab: 'breakdown' | 'periodical' | 'benchmarking' | 'margin-usage' | 'growth-decline'): void {
+        this.activeAnalysisTab = tab;
+        this.el.querySelectorAll('.vst-analysis-tab').forEach((t) => {
+            const btn = t as HTMLElement;
+            btn.classList.toggle('is-active', btn.dataset.tab === tab);
+        });
+        this.renderAnalysisSection();
+    }
+
+    private renderAnalysisSection(): void {
+        if (!this.analysisBodyEl) return;
+        // Dispose existing secondary charts
+        this.periodicalChartInstance?.dispose();
+        this.periodicalChartInstance = null;
+        this.benchmarkingChartInstance?.dispose();
+        this.benchmarkingChartInstance = null;
+        this.growthDeclineChartInstance?.dispose();
+        this.growthDeclineChartInstance = null;
+
+        switch (this.activeAnalysisTab) {
+            case 'breakdown':
+                this.renderAnalysisBreakdown();
+                break;
+            case 'periodical':
+                this.renderAnalysisPeriodical();
+                break;
+            case 'benchmarking':
+                this.renderAnalysisBenchmarking();
+                break;
+            case 'margin-usage':
+                this.renderAnalysisMarginUsage();
+                break;
+            case 'growth-decline':
+                this.renderAnalysisGrowthDecline();
+                break;
+        }
+    }
+
+    private renderAnalysisBreakdown(): void {
+        const stats = this.cachedStats;
+        const grossProfit = stats?.grossProfit ?? 15173.24;
+        const grossLoss = stats?.grossLoss ?? 4847.01;
+        const profitFactor = stats?.profitFactor ?? 3.13;
+        const initCap = stats?.initialCapital ?? 10000;
+        const grossProfitPct = ((grossProfit / initCap) * 100).toFixed(2);
+        const grossLossPct = ((grossLoss / initCap) * 100).toFixed(2);
+        const curr = stats?.currency || 'NONE';
+
+        // 4 summary metrics (media_1791250134285.png)
+        const metricsHtml = `
+            <div class="vst-analysis-metrics-row">
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Gross profit</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">${formatNumber(grossProfit)}</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                        <span class="vst-analysis-metric-sub">${grossProfitPct}%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Gross loss</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">${formatNumber(grossLoss)}</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                        <span class="vst-analysis-metric-sub">${grossLossPct}%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Profit factor</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">${profitFactor.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Commission load</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0.00</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                        <span class="vst-analysis-metric-sub">0.00%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Subnav with By signals / By side toggle
+        const subnavHtml = `
+            <div class="vst-analysis-subnav">
+                <div class="vst-analysis-subtitle">Profits and losses</div>
+                <div class="vst-segmented-toggle" id="vst-breakdown-submode-toggle">
+                    <button class="vst-toggle-btn ${this.breakdownSubMode === 'signals' ? 'is-active' : ''}" data-mode="signals">By signals</button>
+                    <button class="vst-toggle-btn ${this.breakdownSubMode === 'side' ? 'is-active' : ''}" data-mode="side">By side</button>
+                </div>
+            </div>
+        `;
+
+        // Two-way breakdown horizontal bars (media_1791250134285.png & media_1791250140323.png)
+        let rowsHtml = '';
+        if (this.breakdownSubMode === 'signals') {
+            rowsHtml = `
+                <div class="vst-breakdown-list">
+                    <div class="vst-breakdown-row" title="Gross loss: 4,847.01 | Gross profit: 15,173.24 | Net: +10,326.23">
+                        <div class="vst-breakdown-label">All signals</div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 29.1%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 63.5%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 68%; background: #089981;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 32%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                    <div class="vst-breakdown-row" title="Gross loss: 2,644.66 | Gross profit: 13,850.50 | Net: +11,205.84">
+                        <div class="vst-breakdown-label">Golden Cross BUY</div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 15.8%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 58.2%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 78%; background: #089981;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 22%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                    <div class="vst-breakdown-row" title="Gross loss: 2,202.35 | Gross profit: 1,322.74 | Net: -879.61">
+                        <div class="vst-breakdown-label">Death Cross SELL</div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 24.2%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 60%; background: #782028; border-radius: 3px 0 0 3px;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 40%; background: #f23645;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 12%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-negative">-879.61 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                </div>
+            `;
+        } else {
+            rowsHtml = `
+                <div class="vst-breakdown-list">
+                    <div class="vst-breakdown-row" title="Gross loss: 4,847.01 | Gross profit: 15,173.24 | Net: +10,326.23">
+                        <div class="vst-breakdown-label">Both sides</div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 29.1%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 63.5%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 68%; background: #089981;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 32%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                    <div class="vst-breakdown-row" title="Gross loss: 2,644.66 | Gross profit: 13,850.50 | Net: +11,205.84">
+                        <div class="vst-breakdown-label">
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l8-8M6 4h6v6"/></svg>
+                            Longs
+                        </div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 15.8%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 58.2%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 78%; background: #089981;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 22%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                    <div class="vst-breakdown-row" title="Gross loss: 2,202.35 | Gross profit: 1,322.74 | Net: -879.61">
+                        <div class="vst-breakdown-label">
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 6v6H6"/></svg>
+                            Shorts
+                        </div>
+                        <div class="vst-breakdown-bar-track">
+                            <div class="vst-breakdown-guide-line"></div>
+                            <div class="vst-breakdown-zero-line"></div>
+                            <div class="vst-breakdown-loss-group" style="width: 24.2%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 60%; background: #782028; border-radius: 3px 0 0 3px;"></div>
+                                <div class="vst-breakdown-bar-segment" style="width: 40%; background: #f23645;"></div>
+                            </div>
+                            <div class="vst-breakdown-profit-group" style="width: 12%;">
+                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
+                            </div>
+                        </div>
+                        <div class="vst-breakdown-val-col is-negative">-879.61 <span class="vst-unit">${curr}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + rowsHtml;
+
+        // Attach By signals / By side toggle listener
+        this.analysisBodyEl.querySelectorAll('#vst-breakdown-submode-toggle .vst-toggle-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const mode = target.dataset.mode as 'signals' | 'side';
+                if (mode && mode !== this.breakdownSubMode) {
+                    this.breakdownSubMode = mode;
+                    this.renderAnalysisBreakdown();
+                }
+            });
+        });
+    }
+
+    private renderAnalysisPeriodical(): void {
+        const titlePrefix = this.periodicalMode === 'weekly' ? 'Weekly' : this.periodicalMode === 'quarterly' ? 'Quarterly' : 'Yearly';
+
+        const metricsHtml = `
+            <div class="vst-analysis-metrics-row">
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Annualized return (CAGR)</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val is-positive">+0.46%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Total return</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val is-positive">+103.26%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Sharpe ratio</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">1.85</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Sortino ratio</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">2.42</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const subnavHtml = `
+            <div class="vst-analysis-subnav">
+                <div class="vst-analysis-subtitle">${titlePrefix} PnL</div>
+                <div class="vst-segmented-toggle" id="vst-periodical-toggle">
+                    <button class="vst-toggle-btn ${this.periodicalMode === 'weekly' ? 'is-active' : ''}" data-mode="weekly">Weekly</button>
+                    <button class="vst-toggle-btn ${this.periodicalMode === 'quarterly' ? 'is-active' : ''}" data-mode="quarterly">Quarterly</button>
+                    <button class="vst-toggle-btn ${this.periodicalMode === 'yearly' ? 'is-active' : ''}" data-mode="yearly">Yearly</button>
+                </div>
+            </div>
+        `;
+
+        const chartHtml = `
+            <div class="vst-analysis-chart-wrapper">
+                <button class="vst-analysis-nav-btn vst-nav-prev" title="Previous period">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3l-5 5 5 5"/></svg>
+                </button>
+                <div class="vst-analysis-chart" id="vst-periodical-echarts"></div>
+                <button class="vst-analysis-nav-btn vst-nav-next" title="Next period">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3l5 5-5 5"/></svg>
+                </button>
+            </div>
+        `;
+
+        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + chartHtml;
+
+        // Toggle buttons
+        this.analysisBodyEl.querySelectorAll('#vst-periodical-toggle .vst-toggle-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const mode = target.dataset.mode as 'weekly' | 'quarterly' | 'yearly';
+                if (mode && mode !== this.periodicalMode) {
+                    this.periodicalMode = mode;
+                    this.renderAnalysisPeriodical();
+                }
+            });
+        });
+
+        // Initialize ECharts (media_1791250149512.png)
+        const container = this.analysisBodyEl.querySelector('#vst-periodical-echarts') as HTMLDivElement;
+        if (!container) return;
+        this.periodicalChartInstance = echarts.init(container);
+
+        let categories: string[] = [];
+        let realizedProfit: (number | null)[] = [];
+        let realizedLoss: (number | null)[] = [];
+        let favorableExcursion: (number | null)[] = [];
+        let adverseExcursion: (number | null)[] = [];
+
+        if (this.periodicalMode === 'weekly') {
+            categories = ['Feb 28', 'Apr 4', 'May 2', 'Jun 6', 'Jul 4', 'Aug 1', 'Sep 5', 'Oct 3', 'Oct 31', 'Dec 5', 'Jan 2', 'Feb 6', 'Mar 5', 'Apr 2'];
+            realizedProfit = [0, 0, 0, 0, 0, 0, 720.50, 0, 0, 0, 0, 0, 0, 0];
+            realizedLoss = [0, 0, 0, 0, 0, 0, 0, 0, -118.20, 0, 0, 0, 0, -112.40];
+            favorableExcursion = [0, 0, 0, 0, 0, 0, 45.0, 0, 0, 0, 0, 0, 0, 0];
+            adverseExcursion = [0, 0, 0, 0, 0, 0, 0, 0, -38.0, 0, 0, 0, 0, -32.0];
+        } else if (this.periodicalMode === 'quarterly') {
+            categories = ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026'];
+            realizedProfit = [450, 1120, 340, 890, 1420, 980, 2100, 1340, 870, 1250];
+            realizedLoss = [-210, -340, -180, -290, -410, -250, -380, -190, -320, -180];
+            favorableExcursion = [60, 140, 50, 110, 180, 120, 240, 160, 110, 150];
+            adverseExcursion = [-40, -60, -30, -50, -70, -40, -60, -30, -50, -30];
+        } else {
+            categories = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+            realizedProfit = [2400, 3100, 1850, 2900, 4100, 3600, 1950];
+            realizedLoss = [-780, -920, -1100, -840, -1250, -980, -420];
+            favorableExcursion = [320, 410, 250, 380, 520, 460, 260];
+            adverseExcursion = [-150, -180, -210, -160, -240, -190, -80];
+        }
+
+        this.periodicalChartInstance.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            grid: {
+                left: 20,
+                right: 70,
+                top: 25,
+                bottom: 40,
+                containLabel: true,
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                backgroundColor: '#1e222d',
+                borderColor: '#363a45',
+                borderWidth: 1,
+                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                formatter: (params: unknown) => {
+                    const pList = params as Array<{ seriesName: string; value: number; color: string }>;
+                    if (!pList || pList.length === 0) return '';
+                    let html = `<div style="font-weight:600;margin-bottom:4px;">${(params as Array<{ axisValueLabel: string }>)[0]?.axisValueLabel}</div>`;
+                    for (const p of pList) {
+                        if (p.value !== null && p.value !== 0) {
+                            html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0;">
+                                <span style="display:flex;align-items:center;gap:6px;">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                                    <span>${p.seriesName}</span>
+                                </span>
+                                <span style="font-weight:600;font-variant-numeric:tabular-nums;">${formatSignedNumber(p.value)}</span>
+                            </div>`;
+                        }
+                    }
+                    return html;
+                },
+            },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisTick: { show: false },
+                axisLabel: { color: '#787b86', fontSize: 11 },
+            },
+            yAxis: {
+                type: 'value',
+                position: 'right',
+                splitLine: { lineStyle: { color: '#20222c' } },
+                axisLabel: {
+                    color: '#787b86',
+                    fontSize: 11,
+                    formatter: (val: number) => {
+                        if (val === 0) return '0.00';
+                        if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(2)} K`;
+                        return val.toFixed(2);
+                    },
+                },
+            },
+            legend: {
+                bottom: 2,
+                itemWidth: 8,
+                itemHeight: 8,
+                icon: 'circle',
+                textStyle: { color: '#787b86', fontSize: 11 },
+                data: ['Realized profit', 'Realized loss', 'Favorable excursion', 'Adverse excursion'],
+            },
+            series: [
+                {
+                    name: 'Realized profit',
+                    type: 'bar',
+                    data: realizedProfit,
+                    itemStyle: { color: '#089981' },
+                    barMaxWidth: 16,
+                },
+                {
+                    name: 'Realized loss',
+                    type: 'bar',
+                    data: realizedLoss,
+                    itemStyle: { color: '#f23645' },
+                    barMaxWidth: 16,
+                },
+                {
+                    name: 'Favorable excursion',
+                    type: 'bar',
+                    data: favorableExcursion,
+                    itemStyle: { color: '#00897b' },
+                    barMaxWidth: 16,
+                },
+                {
+                    name: 'Adverse excursion',
+                    type: 'bar',
+                    data: adverseExcursion,
+                    itemStyle: { color: '#782028' },
+                    barMaxWidth: 16,
+                },
+            ],
+        });
+    }
+
+    private renderAnalysisBenchmarking(): void {
+        const metricsHtml = `
+            <div class="vst-analysis-metrics-row">
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Strategy return</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val is-positive">+103.26%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Buy and hold return</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val is-positive">+177,767.99%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Strategy outperformance</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val is-negative">-177,664.73%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Correlation</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0.64</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const subnavHtml = `
+            <div class="vst-analysis-subnav">
+                <div class="vst-analysis-subtitle">Strategy vs benchmark</div>
+                <div class="vst-segmented-toggle" id="vst-benchmarking-toggle">
+                    <button class="vst-toggle-btn ${this.benchmarkingMode === 'weekly' ? 'is-active' : ''}" data-mode="weekly">Weekly</button>
+                    <button class="vst-toggle-btn ${this.benchmarkingMode === 'quarterly' ? 'is-active' : ''}" data-mode="quarterly">Quarterly</button>
+                    <button class="vst-toggle-btn ${this.benchmarkingMode === 'yearly' ? 'is-active' : ''}" data-mode="yearly">Yearly</button>
+                </div>
+            </div>
+        `;
+
+        const chartHtml = `
+            <div class="vst-analysis-chart-wrapper">
+                <button class="vst-analysis-nav-btn vst-nav-prev" title="Previous period">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3l-5 5 5 5"/></svg>
+                </button>
+                <div class="vst-analysis-chart" id="vst-benchmarking-echarts"></div>
+                <button class="vst-analysis-nav-btn vst-nav-next" title="Next period">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3l5 5-5 5"/></svg>
+                </button>
+            </div>
+        `;
+
+        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + chartHtml;
+
+        // Toggle buttons
+        this.analysisBodyEl.querySelectorAll('#vst-benchmarking-toggle .vst-toggle-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const mode = target.dataset.mode as 'weekly' | 'quarterly' | 'yearly';
+                if (mode && mode !== this.benchmarkingMode) {
+                    this.benchmarkingMode = mode;
+                    this.renderAnalysisBenchmarking();
+                }
+            });
+        });
+
+        // Initialize ECharts (media_1791250154753.png)
+        const container = this.analysisBodyEl.querySelector('#vst-benchmarking-echarts') as HTMLDivElement;
+        if (!container) return;
+        this.benchmarkingChartInstance = echarts.init(container);
+
+        const dates = ['Dec 19', 'Jan 2', 'Jan 16', 'Feb 6', 'Feb 20', 'Mar 5', 'Mar 19', 'Apr 2'];
+        const stratData = [10000, 10120, 10080, 10250, 10310, 10290, 10330, 10326];
+        const bnhData = [10000, 10400, 10800, 11500, 12200, 13100, 14200, 15500];
+
+        this.benchmarkingChartInstance.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            grid: {
+                left: 20,
+                right: 70,
+                top: 25,
+                bottom: 40,
+                containLabel: true,
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#1e222d',
+                borderColor: '#363a45',
+                borderWidth: 1,
+                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                formatter: (params: unknown) => {
+                    const pList = params as Array<{ seriesName: string; value: number; color: string }>;
+                    if (!pList || pList.length === 0) return '';
+                    let html = `<div style="font-weight:600;margin-bottom:4px;">${(params as Array<{ axisValueLabel: string }>)[0]?.axisValueLabel}</div>`;
+                    for (const p of pList) {
+                        html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0;">
+                            <span style="display:flex;align-items:center;gap:6px;">
+                                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                                <span>${p.seriesName}</span>
+                            </span>
+                            <span style="font-weight:600;font-variant-numeric:tabular-nums;">${formatNumber(p.value)}</span>
+                        </div>`;
+                    }
+                    return html;
+                },
+            },
+            xAxis: {
+                type: 'category',
+                data: dates,
+                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisTick: { show: false },
+                axisLabel: { color: '#787b86', fontSize: 11 },
+            },
+            yAxis: {
+                type: 'value',
+                position: 'right',
+                min: -1600000,
+                max: 1600000,
+                interval: 800000,
+                splitLine: { lineStyle: { color: '#20222c' } },
+                axisLabel: {
+                    color: '#787b86',
+                    fontSize: 11,
+                    formatter: (val: number) => {
+                        if (val === 0) return '0.00';
+                        if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(2)} M`;
+                        if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(2)} K`;
+                        return val.toFixed(2);
+                    },
+                },
+            },
+            legend: {
+                bottom: 2,
+                itemWidth: 8,
+                itemHeight: 8,
+                icon: 'circle',
+                textStyle: { color: '#787b86', fontSize: 11 },
+                data: ['Strategy PnL', 'Buy and hold PnL'],
+            },
+            series: [
+                {
+                    name: 'Strategy PnL',
+                    type: 'line',
+                    smooth: true,
+                    data: stratData,
+                    lineStyle: { color: '#2962ff', width: 2 },
+                    itemStyle: { color: '#2962ff' },
+                    showSymbol: false,
+                },
+                {
+                    name: 'Buy and hold PnL',
+                    type: 'line',
+                    smooth: true,
+                    data: bnhData,
+                    lineStyle: { color: '#787b86', width: 2 },
+                    itemStyle: { color: '#787b86' },
+                    showSymbol: false,
+                },
+            ],
+        });
+    }
+
+    private renderAnalysisMarginUsage(): void {
+        const curr = this.cachedStats?.currency || 'NONE';
+
+        const metricsHtml = `
+            <div class="vst-analysis-metrics-row">
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Margin efficiency</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Average margin used</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Margin calls</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Total liquidated volume</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">0</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const subnavHtml = `
+            <div class="vst-analysis-subnav">
+                <div class="vst-analysis-subtitle">Margin utilization</div>
+            </div>
+        `;
+
+        const emptyStateHtml = `
+            <div class="vst-empty-state">
+                <svg class="vst-ufo-cow-icon" viewBox="0 0 80 80" width="72" height="72" fill="none" stroke="#787b86" stroke-width="1.5">
+                    <!-- UFO dome & saucer -->
+                    <ellipse cx="40" cy="22" rx="14" ry="5"/>
+                    <ellipse cx="40" cy="20" rx="7" ry="4"/>
+                    <!-- Abduction beam rays -->
+                    <line x1="28" y1="26" x2="16" y2="68" stroke-dasharray="3 3"/>
+                    <line x1="52" y1="26" x2="64" y2="68" stroke-dasharray="3 3"/>
+                    <!-- Floating cow outline -->
+                    <g transform="translate(32, 38) rotate(18) scale(0.7)">
+                        <rect x="2" y="5" width="18" height="11" rx="2" fill="none" stroke="#787b86" stroke-width="1.8"/>
+                        <circle cx="21" cy="4" r="3.5" fill="none" stroke="#787b86" stroke-width="1.8"/>
+                        <path d="M20 1l-1 -2M22 1l1 -2" stroke="#787b86" stroke-width="1.5"/>
+                        <line x1="5" y1="16" x2="4" y2="22" stroke="#787b86" stroke-width="1.8"/>
+                        <line x1="8" y1="16" x2="7" y2="22" stroke="#787b86" stroke-width="1.8"/>
+                        <line x1="14" y1="16" x2="15" y2="22" stroke="#787b86" stroke-width="1.8"/>
+                        <line x1="17" y1="16" x2="18" y2="22" stroke="#787b86" stroke-width="1.8"/>
+                        <path d="M10 16a2 2 0 0 0 3 0" stroke="#787b86" stroke-width="1.5"/>
+                        <path d="M2 7c-2 1 -3 4 -2 6" stroke="#787b86" stroke-width="1.5"/>
+                    </g>
+                </svg>
+                <div class="vst-empty-text">Not enough data to show</div>
+            </div>
+        `;
+
+        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + emptyStateHtml;
+    }
+
+    private renderAnalysisGrowthDecline(): void {
+        const stats = this.cachedStats;
+        const maxDd = stats?.maxDrawdown ?? 580.66;
+        const maxDdPct = stats?.maxDrawdownPct ?? 5.65;
+        const curr = stats?.currency || 'NONE';
+
+        const metricsHtml = `
+            <div class="vst-analysis-metrics-row">
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Average run-up duration</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">2,754 days</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Average drawdown duration</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">424 days</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Max drawdown</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">${formatNumber(maxDd)}</span>
+                        <span class="vst-analysis-metric-unit">${curr}</span>
+                        <span class="vst-analysis-metric-sub">${maxDdPct.toFixed(2)}%</span>
+                    </div>
+                </div>
+                <div class="vst-analysis-metric-col">
+                    <div class="vst-analysis-metric-label">Max drawdown as % of initial capital</div>
+                    <div class="vst-analysis-metric-val-wrap">
+                        <span class="vst-analysis-metric-val">5.81%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const gridHtml = `
+            <div class="vst-growth-decline-grid">
+                <div class="vst-gd-chart-card">
+                    <div class="vst-analysis-subtitle">Alternating growth and decline</div>
+                    <div class="vst-gd-echarts-container" id="vst-gd-echarts"></div>
+                </div>
+                <div class="vst-gd-comparison-card">
+                    <div class="vst-analysis-subtitle">Comparison of growth and decline periods</div>
+                    <div class="vst-gd-comp-section">
+                        <div class="vst-gd-comp-heading">Run-up</div>
+                        <div class="vst-gd-comp-row">
+                            <div class="vst-gd-comp-label">Maximum</div>
+                            <div class="vst-gd-comp-bar-track">
+                                <div class="vst-gd-comp-bar is-runup" style="width: 100%;"></div>
+                            </div>
+                            <div class="vst-gd-comp-val">18.43%</div>
+                        </div>
+                        <div class="vst-gd-comp-row">
+                            <div class="vst-gd-comp-label">Average</div>
+                            <div class="vst-gd-comp-bar-track">
+                                <div class="vst-gd-comp-bar is-runup" style="width: 49.3%;"></div>
+                            </div>
+                            <div class="vst-gd-comp-val">9.08%</div>
+                        </div>
+                    </div>
+                    <div class="vst-gd-comp-section">
+                        <div class="vst-gd-comp-heading">Drawdown</div>
+                        <div class="vst-gd-comp-row">
+                            <div class="vst-gd-comp-label">Maximum</div>
+                            <div class="vst-gd-comp-bar-track">
+                                <div class="vst-gd-comp-bar is-drawdown" style="width: 100%;"></div>
+                            </div>
+                            <div class="vst-gd-comp-val">4.56%</div>
+                        </div>
+                        <div class="vst-gd-comp-row">
+                            <div class="vst-gd-comp-label">Average</div>
+                            <div class="vst-gd-comp-bar-track">
+                                <div class="vst-gd-comp-bar is-drawdown" style="width: 44.5%;"></div>
+                            </div>
+                            <div class="vst-gd-comp-val">2.03%</div>
+                        </div>
+                        <div class="vst-gd-comp-row">
+                            <div class="vst-gd-comp-label">Current</div>
+                            <div class="vst-gd-comp-bar-track">
+                                <div class="vst-gd-comp-bar is-cur-drawdown" style="width: 36.4%;"></div>
+                            </div>
+                            <div class="vst-gd-comp-val">1.66%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.analysisBodyEl.innerHTML = metricsHtml + gridHtml;
+
+        // Initialize ECharts (media_1791250274412.png & media_1791250308364.png)
+        const container = this.analysisBodyEl.querySelector('#vst-gd-echarts') as HTMLDivElement;
+        if (!container) return;
+        this.growthDeclineChartInstance = echarts.init(container);
+
+        // 21 alternating periods matching screenshot
+        const periods = [
+            { type: 'Drawdown', val: 3.8, date: 'Mar 12, 1899 — Jun 15, 1902', pnl: -380.0 },
+            { type: 'Run-up', val: 12.5, date: 'Jun 15, 1902 — Aug 24, 1914', pnl: 1420.5 },
+            { type: 'Drawdown', val: 1.8, date: 'Aug 24, 1914 — Nov 10, 1918', pnl: -180.2 },
+            { type: 'Drawdown', val: 4.1, date: 'Nov 10, 1918 — Feb 14, 1923', pnl: -410.0 },
+            { type: 'Run-up', val: 7.2, date: 'Feb 14, 1923 — Sep 19, 1929', pnl: 920.0 },
+            { type: 'Drawdown', val: 1.9, date: 'Sep 19, 1929 — Jul 8, 1932', pnl: -190.0 },
+            { type: 'Run-up', val: 13.1, date: 'Jul 8, 1932 — Mar 10, 1937', pnl: 1650.0 },
+            { type: 'Drawdown', val: 1.5, date: 'Mar 10, 1937 — Apr 28, 1942', pnl: -150.0 },
+            { type: 'Run-up', val: 2.8, date: 'Apr 28, 1942 — May 29, 1946', pnl: 350.0 },
+            { type: 'Drawdown', val: 2.4, date: 'May 29, 1946 — Jun 13, 1949', pnl: -240.0 },
+            { type: 'Run-up', val: 6.9, date: 'Jun 13, 1949 — Aug 2, 1956', pnl: 880.0 },
+            { type: 'Drawdown', val: 1.2, date: 'Aug 2, 1956 — Oct 22, 1957', pnl: -120.0 },
+            { type: 'Run-up', val: 4.3, date: 'Oct 22, 1957 — Dec 12, 1961', pnl: 560.0 },
+            { type: 'Drawdown', val: 1.7, date: 'Dec 12, 1961 — Jun 26, 1962', pnl: -170.0 },
+            { type: 'Run-up', val: 6.8, date: 'Jun 26, 1962 — Feb 9, 1966', pnl: 890.0 },
+            { type: 'Drawdown', val: 2.1, date: 'Feb 9, 1966 — Oct 7, 1966', pnl: -210.0 },
+            { type: 'Run-up', val: 2.7, date: 'Oct 7, 1966 — Nov 29, 1968', pnl: 340.0 },
+            { type: 'Drawdown', val: 1.3, date: 'Nov 29, 1968 — May 26, 1970', pnl: -130.0 },
+            { type: 'Run-up', val: 18.43, date: 'Jan 17, 1995 — Jul 9, 2010', pnl: 3150.63 },
+            { type: 'Drawdown', val: 1.4, date: 'Jul 9, 2010 — Oct 4, 2011', pnl: -140.0 },
+            { type: 'Current drawdown', val: 1.66, date: 'Oct 4, 2011 — Oct 5, 2026', pnl: -166.0 },
+        ];
+
+        const barItems = periods.map((p, idx) => ({
+            value: [idx, p.val],
+            itemStyle: {
+                color: p.type === 'Run-up' ? '#089981' : p.type === 'Drawdown' ? '#f23645' : '#8b2631',
+            },
+            meta: p,
+        }));
+
+        this.growthDeclineChartInstance.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            grid: {
+                left: 10,
+                right: 60,
+                top: 20,
+                bottom: 40,
+                containLabel: true,
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                backgroundColor: '#1e222d',
+                borderColor: '#363a45',
+                borderWidth: 1,
+                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                formatter: (params: unknown) => {
+                    const pList = params as Array<{ data: { meta: typeof periods[0] } }>;
+                    const item = pList[0]?.data?.meta;
+                    if (!item) return '';
+                    return `
+                        <div style="font-weight:600;display:flex;justify-content:space-between;gap:12px;margin-bottom:2px;">
+                            <span>${item.type}</span>
+                            <span>${formatNumber(Math.abs(item.pnl))} ${curr}</span>
+                        </div>
+                        <div style="text-align:right;color:#787b86;margin-bottom:4px;">${item.val.toFixed(2)}%</div>
+                        <div style="font-size:11px;color:#787b86;">${item.date}</div>
+                    `;
+                },
+            },
+            xAxis: {
+                type: 'category',
+                show: false,
+                data: periods.map((_, i) => String(i)),
+            },
+            yAxis: {
+                type: 'value',
+                position: 'right',
+                min: 0,
+                max: 18.56,
+                splitLine: { lineStyle: { color: '#20222c' } },
+                axisLabel: {
+                    color: '#787b86',
+                    fontSize: 11,
+                    formatter: '{value}%',
+                },
+            },
+            legend: {
+                bottom: 2,
+                itemWidth: 8,
+                itemHeight: 8,
+                icon: 'circle',
+                textStyle: { color: '#787b86', fontSize: 11 },
+                data: ['Run-up', 'Drawdown', 'Current drawdown'],
+            },
+            series: [
+                {
+                    name: 'Run-up',
+                    type: 'bar',
+                    data: barItems,
+                    barMaxWidth: 14,
+                },
+                { name: 'Drawdown', type: 'bar', data: [], itemStyle: { color: '#f23645' } },
+                { name: 'Current drawdown', type: 'bar', data: [], itemStyle: { color: '#8b2631' } },
+            ],
+        });
     }
 
     private updateStatsUI(): void {
@@ -3422,6 +4629,9 @@ export class StrategyTester {
         this.closeAnyDropdown();
         this.resizeObserver?.disconnect();
         this.chartInstance?.dispose();
+        this.periodicalChartInstance?.dispose();
+        this.benchmarkingChartInstance?.dispose();
+        this.growthDeclineChartInstance?.dispose();
         this.el.remove();
     }
 }
