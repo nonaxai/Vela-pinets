@@ -4231,7 +4231,7 @@ export class StrategyTester {
                     type: 'value',
                     position: 'right',
                     min: 0,
-                    max: 30,
+                    max: 35,
                     interval: 10,
                     splitLine: { lineStyle: { color: '#20222c' } },
                     axisLabel: { color: '#787b86', fontSize: 11 },
