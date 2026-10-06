@@ -253,6 +253,9 @@ export class StrategyTester {
     private resizerEl!: HTMLElement;
     private dockBarEl!: HTMLElement;
     private drawerBodyEl!: HTMLElement;
+    private perfSectionEl!: HTMLElement;
+    private analysisSectionEl!: HTMLElement;
+    private tradesSectionEl!: HTMLElement;
     private chartContainerEl!: HTMLElement;
     private tradesTableEl!: HTMLElement;
 
@@ -342,7 +345,7 @@ export class StrategyTester {
         this.onStrategySelect = opts.onStrategySelect;
 
         this.el = document.createElement('div');
-        this.el.className = 'vela-strategy-tester';
+        this.el.className = 'vela-strategy-tester vela-ui';
         this.buildDOM();
         this.host.appendChild(this.el);
 
@@ -592,9 +595,6 @@ export class StrategyTester {
 
                         <!-- ECharts Element -->
                         <div class="vst-echarts-container" id="vst-echarts"></div>
-
-                        <!-- Trades List Table View -->
-                        <div class="vst-trades-table-container" style="display:none;"></div>
                     </div>
                 </div>
 
@@ -609,12 +609,20 @@ export class StrategyTester {
                         <button class="vst-analysis-tab" data-tab="growth-decline">Growth and decline</button>
                     </div>
                 </div>
+
+                <!-- Trades List Section (Dedicated Table View, media_1791243438337.png) -->
+                <div class="vst-trades-section" style="display:none;">
+                    <div class="vst-trades-table-container"></div>
+                </div>
             </div>
         `;
 
         this.resizerEl = this.el.querySelector('.vst-resizer')!;
         this.dockBarEl = this.el.querySelector('.vst-dock-bar')!;
         this.drawerBodyEl = this.el.querySelector('.vst-drawer-body')!;
+        this.perfSectionEl = this.el.querySelector('.vst-perf-section')!;
+        this.analysisSectionEl = this.el.querySelector('.vst-analysis-section')!;
+        this.tradesSectionEl = this.el.querySelector('.vst-trades-section')!;
         this.chartContainerEl = this.el.querySelector('#vst-echarts')!;
         this.tradesTableEl = this.el.querySelector('.vst-trades-table-container')!;
 
@@ -719,17 +727,17 @@ export class StrategyTester {
                 font-variant-numeric: tabular-nums;
             }
             .vst-inline-stat-val.is-positive {
-                color: #00e676;
+                color: #089981;
             }
             .vst-inline-stat-val.is-negative {
-                color: #ef5350;
+                color: #f23645;
             }
             .vst-inline-stat-curr {
                 font-size: 10px;
                 color: #787b86;
             }
             .vst-inline-stat-sub.is-positive {
-                color: #00e676;
+                color: #089981;
                 font-weight: 600;
             }
             .vst-inline-stat-sub.is-muted {
@@ -776,7 +784,7 @@ export class StrategyTester {
             }
             .vst-strat-icon {
                 display: inline-flex;
-                color: #00e676;
+                color: #089981;
             }
             .vst-title-btn, .vst-tab-title-btn {
                 all: unset;
@@ -790,8 +798,8 @@ export class StrategyTester {
                 border-radius: 4px;
             }
             .vst-title-btn:hover, .vst-tab-title-btn:hover {
-                background: #252830;
-                color: #ffffff;
+                background: #2a2e39;
+                color: #f0f3fa;
             }
             .vst-chevron {
                 opacity: 0.65;
@@ -809,8 +817,8 @@ export class StrategyTester {
                 color: #787b86;
             }
             .vst-icon-btn:hover {
-                background: #252830;
-                color: #ffffff;
+                background: #2a2e39;
+                color: #f0f3fa;
             }
 
             /* Drawer Body */
@@ -836,8 +844,8 @@ export class StrategyTester {
                 justify-content: space-between;
                 height: 42px;
                 padding: 0 16px;
-                background: #131417;
-                border-bottom: 1px solid #22242a;
+                background: #151619;
+                border-bottom: 1px solid #2a2b30;
             }
             .vst-strat-tab {
                 display: inline-flex;
@@ -849,9 +857,10 @@ export class StrategyTester {
                 border-radius: 6px 6px 0 0;
                 font-weight: 600;
                 font-size: 13.5px;
-                border-top: 1px solid #32353e;
-                border-left: 1px solid #32353e;
-                border-right: 1px solid #32353e;
+                border-top: 1px solid #2a2b30;
+                border-left: 1px solid #2a2b30;
+                border-right: 1px solid #2a2b30;
+                color: #f0f3fa;
             }
             .vst-header-actions {
                 display: flex;
@@ -867,13 +876,13 @@ export class StrategyTester {
                 height: 48px;
                 padding: 0 16px;
                 background: #151619;
-                border-bottom: 1px solid #22242a;
+                border-bottom: 1px solid #2a2b30;
                 overflow-x: auto;
             }
             .vst-seg-group {
                 display: inline-flex;
-                background: #1b1c21;
-                border: 1px solid #2c2d33;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
                 border-radius: 6px;
                 overflow: hidden;
                 height: 34px;
@@ -894,7 +903,7 @@ export class StrategyTester {
             }
             .vst-seg-btn.is-active {
                 background: #2a2b30;
-                color: #ffffff;
+                color: #f0f3fa;
             }
 
             .vst-dropdown-pill {
@@ -908,16 +917,16 @@ export class StrategyTester {
                 cursor: pointer;
                 color: #d1d4dc;
                 font-size: 13px;
-                background: #1e222d;
-                border: 1px solid #2a2e39;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
                 white-space: nowrap;
                 transition: all 0.15s ease;
             }
             .vst-dropdown-pill:hover,
             .vst-dropdown-pill.is-active {
                 background: #2a2e39;
-                border-color: #3e424d;
-                color: #ffffff;
+                border-color: #34353b;
+                color: #f0f3fa;
             }
             .vst-dropdown-pill.is-active .vst-chevron {
                 transform: rotate(180deg);
@@ -937,8 +946,8 @@ export class StrategyTester {
                 width: 17px;
                 height: 17px;
                 border-radius: 50%;
-                background: #ffffff;
-                color: #131722;
+                background: #f0f3fa;
+                color: #151619;
                 font-size: 11px;
                 font-weight: 700;
                 line-height: 1;
@@ -955,7 +964,7 @@ export class StrategyTester {
             .vst-stats-card-container {
                 padding: 16px 20px 14px 20px;
                 background: #151619;
-                border-bottom: 1px solid #202227;
+                border-bottom: 1px solid #2a2b30;
                 flex: none;
             }
             .vst-stats-title {
@@ -991,10 +1000,10 @@ export class StrategyTester {
                 font-variant-numeric: tabular-nums;
             }
             .vst-stat-val.is-positive {
-                color: #00e676;
+                color: #089981;
             }
             .vst-stat-val.is-negative {
-                color: #ef5350;
+                color: #f23645;
             }
             .vst-stat-curr {
                 font-size: 11.5px;
@@ -1007,7 +1016,7 @@ export class StrategyTester {
                 font-variant-numeric: tabular-nums;
             }
             .vst-stat-sub.is-positive {
-                color: #00e676;
+                color: #089981;
             }
             .vst-stat-sub.is-muted {
                 color: #787b86;
@@ -1186,65 +1195,82 @@ export class StrategyTester {
                 padding-top: 4px;
             }
 
-            /* Trades Table */
-            .vst-trades-table-container {
-                position: absolute;
-                inset: 0;
+            /* Trades Section & Table (Dedicated section, media_1791243438337.png) */
+            .vst-trades-section {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 auto;
+                min-height: 0;
                 background: #151619;
-                overflow: auto;
-                padding: 8px 16px;
+                overflow: hidden;
             }
-            .vst-trades-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 11.5px;
+            .vst-trades-table-container {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 auto;
+                min-height: 0;
+                background: #151619;
+                overflow: hidden;
             }
-            .vst-trades-table th {
-                position: sticky;
-                top: 0;
-                background: #1b1c21;
-                padding: 6px 8px;
-                text-align: left;
-                color: #787b86;
-                border-bottom: 1px solid #2a2b30;
-            }
-            .vst-trades-table td {
-                padding: 6px 8px;
-                border-bottom: 1px solid #202227;
-                font-variant-numeric: tabular-nums;
-            }
-            .vst-trades-table tr:hover td {
-                background: #1c1d22;
-            }
-
-            /* Trades Header Bar (media_1791243438337.png) */
             .vst-trades-header-bar {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 10px 16px;
+                height: 42px;
+                padding: 0 20px;
                 border-bottom: 1px solid #2a2b30;
                 background: #151619;
-                position: sticky;
-                top: 0;
-                z-index: 2;
+                flex: none;
             }
             .vst-trades-header-title {
-                font-size: 14.5px;
+                font-size: 15px;
                 font-weight: 700;
-                color: #ffffff;
+                color: #f0f3fa;
             }
             .vst-trades-header-actions {
                 display: flex;
                 align-items: center;
-                gap: 6px;
+                gap: 8px;
+            }
+            .vst-trades-table-wrapper {
+                flex: 1 1 auto;
+                overflow-y: auto;
+                overflow-x: auto;
+                min-height: 0;
+            }
+            .vst-trades-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+            .vst-trades-table th {
+                position: sticky;
+                top: 0;
+                background: #1e2025;
+                padding: 8px 14px;
+                text-align: left;
+                color: #868a96;
+                border-bottom: 1px solid #2a2b30;
+                font-weight: 550;
+                z-index: 2;
+                white-space: nowrap;
+            }
+            .vst-trades-table td {
+                padding: 8px 14px;
+                border-bottom: 1px solid #20222c;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .vst-trades-table tr:hover td {
+                background: rgba(255, 255, 255, 0.04);
             }
 
             /* Performance Analysis Section (Gambar 1) */
             .vst-analysis-section {
                 padding: 14px 20px 18px 20px;
                 background: #151619;
-                border-top: 1px solid #202227;
+                border-top: 1px solid #2a2b30;
                 flex: none;
             }
             .vst-analysis-title {
@@ -1267,9 +1293,9 @@ export class StrategyTester {
                 height: 32px;
                 padding: 0 16px;
                 border-radius: 16px;
-                background: #1e222d;
-                border: 1px solid #2a2e39;
-                color: #d1d4dc;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
+                color: #868a96;
                 font-size: 13px;
                 font-weight: 500;
                 cursor: pointer;
@@ -1277,22 +1303,22 @@ export class StrategyTester {
             }
             .vst-analysis-tab:hover {
                 background: #2a2e39;
-                color: #ffffff;
+                color: #f0f3fa;
             }
             .vst-analysis-tab.is-active {
-                background: #f0f3fa;
-                color: #131722;
-                border-color: #f0f3fa;
-                font-weight: 700;
+                background: #2a2e39;
+                color: #f0f3fa;
+                border-color: #34353b;
+                font-weight: 600;
             }
 
             /* Dropdowns (Gambar 3, 4, 5) */
             .vst-dropdown-panel {
                 position: fixed;
-                background: #1e222d;
-                border: 1px solid #2a2e39;
+                background: #1e2025;
+                border: 1px solid #34353b;
                 border-radius: 8px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
                 padding: 8px 0;
                 z-index: 1000;
                 font-size: 13px;
@@ -1325,7 +1351,7 @@ export class StrategyTester {
                 width: 14px;
                 height: 14px;
                 border-radius: 50%;
-                background: #363a45;
+                background: #34353b;
                 color: #a3a6af;
                 font-size: 10px;
                 font-weight: bold;
@@ -1344,7 +1370,7 @@ export class StrategyTester {
             }
             .vst-drop-divider {
                 height: 1px;
-                background: #2a2e39;
+                background: #2a2b30;
                 margin: 6px 0;
             }
             .vst-drop-item {
@@ -1366,12 +1392,12 @@ export class StrategyTester {
             }
             .vst-drop-item.is-selected {
                 background: #f0f3fa;
-                color: #131722;
+                color: #151619;
                 font-weight: 600;
             }
             .vst-drop-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #131722;
+                color: #151619;
             }
             .vst-drop-hint {
                 font-size: 12px;
@@ -1410,8 +1436,8 @@ export class StrategyTester {
                 all: unset;
                 width: 110px;
                 height: 34px;
-                background: #14171f;
-                border: 1px solid #2a2e39;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
                 border-radius: 6px;
                 padding: 0 10px;
                 color: #ffffff;
@@ -1430,8 +1456,8 @@ export class StrategyTester {
                 gap: 6px;
                 height: 34px;
                 padding: 0 10px;
-                background: #1e222d;
-                border: 1px solid #2a2e39;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
                 border-radius: 6px;
                 color: #d1d4dc;
                 font-size: 12.5px;
@@ -1439,7 +1465,7 @@ export class StrategyTester {
                 min-width: 125px;
             }
             .vst-curr-toggle-btn:hover {
-                border-color: #3e424d;
+                border-color: #34353b;
                 color: #ffffff;
             }
             .vst-curr-toggle-btn.is-active .vst-chevron {
@@ -1449,8 +1475,8 @@ export class StrategyTester {
                 position: absolute;
                 top: 48px;
                 right: 12px;
-                background: #1e222d;
-                border: 1px solid #2a2e39;
+                background: #1e2025;
+                border: 1px solid #34353b;
                 border-radius: 6px;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
                 padding: 4px 0;
@@ -1475,12 +1501,12 @@ export class StrategyTester {
             }
             .vst-curr-item.is-selected {
                 background: #f0f3fa;
-                color: #131722;
+                color: #151619;
                 font-weight: 600;
             }
             .vst-curr-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #131722;
+                color: #151619;
             }
 
             /* Checkboxes (Script execution & Columns) */
@@ -1502,7 +1528,7 @@ export class StrategyTester {
                 width: 16px;
                 height: 16px;
                 border-radius: 3px;
-                border: 1px solid #434651;
+                border: 1px solid #34353b;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -1511,8 +1537,8 @@ export class StrategyTester {
                 flex: none;
             }
             .vst-check-item.is-checked .vst-checkbox {
-                background: #545763;
-                border-color: #545763;
+                background: #089981;
+                border-color: #089981;
             }
             .vst-check-info {
                 display: inline-flex;
@@ -1531,17 +1557,17 @@ export class StrategyTester {
                 width: 28px;
                 height: 28px;
                 border-radius: 4px;
-                background: transparent;
-                border: 1px solid #363a45;
-                color: #787b86;
+                background: #1e2025;
+                border: 1px solid #2a2b30;
+                color: #868a96;
                 cursor: pointer;
                 transition: all 0.12s ease;
             }
             .vst-trades-action-btn:hover,
             .vst-trades-action-btn.is-active {
                 background: #2a2e39;
-                color: #ffffff;
-                border-color: #4e5260;
+                color: #f0f3fa;
+                border-color: #34353b;
             }
 
             /* Switches (Scale & Whitespace) */
@@ -1562,7 +1588,7 @@ export class StrategyTester {
             .vst-switch-track {
                 width: 32px;
                 height: 18px;
-                background: #363a45;
+                background: #34353b;
                 border-radius: 10px;
                 position: relative;
                 transition: background 0.15s ease;
@@ -1582,7 +1608,7 @@ export class StrategyTester {
             }
             .vst-switch-track.is-on .vst-switch-thumb {
                 transform: translateX(14px);
-                background: #131722;
+                background: #151619;
             }
         `;
         document.head.appendChild(style);
@@ -1827,9 +1853,9 @@ export class StrategyTester {
             for (const s of strategies) {
                 const isActive = s.id === this.activeHandle?.id;
                 itemsHtml += `
-                    <div class="vst-strat-item" data-id="${s.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;${isActive ? 'background:#262830;color:#00e676;font-weight:600;' : ''}">
+                    <div class="vst-strat-item" data-id="${s.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;${isActive ? 'background:#2a2e39;color:#089981;font-weight:600;' : ''}">
                         <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="color:${isActive ? '#00e676' : '#787b86'}">${isActive ? '✓' : '•'}</span>
+                            <span style="color:${isActive ? '#089981' : '#787b86'}">${isActive ? '✓' : '•'}</span>
                             <span>${this.extractTitle(s)}</span>
                         </div>
                         <span style="font-size:10px;color:#787b86;">${s.visible ? 'Visible' : 'Hidden'}</span>
@@ -1915,7 +1941,7 @@ export class StrategyTester {
             this.activeDropdownEl.remove();
             this.activeDropdownEl = null;
         }
-        this.el.querySelectorAll('.vst-dropdown-pill.is-active, .vst-icon-btn.is-active').forEach((btn) => {
+        this.el.querySelectorAll('.vst-dropdown-pill.is-active, .vst-icon-btn.is-active, .vst-trades-action-btn.is-active').forEach((btn) => {
             btn.classList.remove('is-active');
         });
     }
@@ -2418,6 +2444,10 @@ export class StrategyTester {
             expandBtn.setAttribute('title', this.isChartExpanded ? 'Restore chart' : 'Expand chart');
         }
 
+        if (this.currentView === 'chart') {
+            this.analysisSectionEl.style.display = this.isChartExpanded ? 'none' : 'block';
+        }
+
         setTimeout(() => {
             this.chartInstance?.resize();
         }, 10);
@@ -2433,12 +2463,14 @@ export class StrategyTester {
             btn.classList.toggle('is-active', (btn as HTMLElement).dataset.view === view);
         });
         if (view === 'chart') {
-            this.chartContainerEl.style.display = 'block';
-            this.tradesTableEl.style.display = 'none';
+            this.perfSectionEl.style.display = 'flex';
+            this.analysisSectionEl.style.display = this.isChartExpanded ? 'none' : 'block';
+            this.tradesSectionEl.style.display = 'none';
             this.chartInstance?.resize();
         } else {
-            this.chartContainerEl.style.display = 'none';
-            this.tradesTableEl.style.display = 'block';
+            this.perfSectionEl.style.display = 'none';
+            this.analysisSectionEl.style.display = 'none';
+            this.tradesSectionEl.style.display = 'flex';
             this.renderTradesTable();
         }
     }
@@ -2933,8 +2965,8 @@ export class StrategyTester {
                         return {
                             value: [time, val],
                             itemStyle: {
-                                color: idx === 0 ? '#ef5350' : '#089981',
-                                borderColor: idx === 0 ? '#ef5350' : '#089981',
+                                color: idx === 0 ? '#f23645' : '#089981',
+                                borderColor: idx === 0 ? '#f23645' : '#089981',
                             },
                         };
                     });
@@ -2958,7 +2990,7 @@ export class StrategyTester {
                                 {
                                     coord: [lastTime, lastCumPnl],
                                     value: formatNumber(lastCumPnl, 2),
-                                    itemStyle: { color: '#00b49d' },
+                                    itemStyle: { color: '#089981' },
                                     label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
                                 },
                             ],
@@ -2975,12 +3007,12 @@ export class StrategyTester {
                         showSymbol: true,
                         symbol: 'circle',
                         symbolSize: 4.5,
-                        itemStyle: { color: '#00e676' },
-                        lineStyle: { color: '#00e676', width: 2 },
+                        itemStyle: { color: '#089981' },
+                        lineStyle: { color: '#089981', width: 2 },
                         areaStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(0, 230, 118, 0.15)' },
-                                { offset: 1, color: 'rgba(0, 230, 118, 0.0)' },
+                                { offset: 0, color: 'rgba(8, 153, 129, 0.22)' },
+                                { offset: 1, color: 'rgba(8, 153, 129, 0.0)' },
                             ]),
                         },
                         markPoint: {
@@ -3193,15 +3225,15 @@ export class StrategyTester {
                                 </div>
                                 <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
                                     <span style="color:#787b86;">Max drawdown:</span>
-                                    <span style="font-weight:600;color:#ef5350;">-${formatNumber(drawdownVal)} (${drawdownPct.toFixed(2)}%)</span>
+                                    <span style="font-weight:600;color:#f23645;">-${formatNumber(drawdownVal)} (${drawdownPct.toFixed(2)}%)</span>
                                 </div>
                                 <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
                                     <span style="color:#787b86;">Profit:</span>
-                                    <span style="font-weight:600;color:${pnl >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(pnl)}</span>
+                                    <span style="font-weight:600;color:${pnl >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(pnl)}</span>
                                 </div>
                                 <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
                                     <span style="color:#787b86;">Accumulated profit:</span>
-                                    <span style="font-weight:600;color:${cumPnlVal >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(cumPnlVal)}</span>
+                                    <span style="font-weight:600;color:${cumPnlVal >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(cumPnlVal)}</span>
                                 </div>
                                 <div style="border-top:1px solid #282a30;margin-top:6px;padding-top:4px;color:#787b86;font-size:10.5px;">
                                     ${entryDateStr} — ${exitDateStr}
@@ -3292,15 +3324,15 @@ export class StrategyTester {
 
                 let tds = `<td>#${i + 1}</td>`;
                 if (cols.dateTime) tds += `<td>${dateStr}</td>`;
-                if (cols.signal) tds += `<td style="font-weight:600;color:${t.side === 'long' ? '#00e676' : '#2962ff'}">${t.side.toUpperCase()}</td>`;
+                if (cols.signal) tds += `<td style="font-weight:600;color:${t.side === 'long' ? '#089981' : '#2962ff'}">${t.side.toUpperCase()}</td>`;
                 if (cols.price) tds += `<td>${formatNumber(t.entry.price)}</td>`;
                 if (cols.size) tds += `<td>1</td>`;
-                if (cols.netPnl) tds += `<td style="font-weight:700;color:${isProfit ? '#00e676' : '#ef5350'}">${formatSignedNumber(pnl)}</td>`;
-                if (cols.returnPct) tds += `<td style="font-weight:600;color:${isProfit ? '#00e676' : '#ef5350'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</td>`;
+                if (cols.netPnl) tds += `<td style="font-weight:700;color:${isProfit ? '#089981' : '#f23645'}">${formatSignedNumber(pnl)}</td>`;
+                if (cols.returnPct) tds += `<td style="font-weight:600;color:${isProfit ? '#089981' : '#f23645'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</td>`;
                 if (cols.commission) tds += `<td>0.00</td>`;
                 if (cols.favorableExcursion) tds += `<td style="color:#089981;">${t.maxRunup !== undefined ? `+${formatNumber(t.maxRunup)}` : '—'}</td>`;
-                if (cols.adverseExcursion) tds += `<td style="color:#ef5350;">${t.maxDrawdown !== undefined ? `-${formatNumber(t.maxDrawdown)}` : '—'}</td>`;
-                if (cols.cumPnl) tds += `<td style="font-weight:700;color:${cumPnl >= 0 ? '#00e676' : '#ef5350'}">${formatSignedNumber(cumPnl)}</td>`;
+                if (cols.adverseExcursion) tds += `<td style="color:#f23645;">${t.maxDrawdown !== undefined ? `-${formatNumber(t.maxDrawdown)}` : '—'}</td>`;
+                if (cols.cumPnl) tds += `<td style="font-weight:700;color:${cumPnl >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(cumPnl)}</td>`;
                 if (cols.duration) tds += `<td>${(i * 3 + 2) % 18 + 1} bars</td>`;
 
                 rows += `<tr>${tds}</tr>`;
@@ -3324,16 +3356,18 @@ export class StrategyTester {
                     </button>
                 </div>
             </div>
-            <table class="vst-trades-table">
-                <thead>
-                    <tr>
-                        ${ths}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-            </table>
+            <div class="vst-trades-table-wrapper">
+                <table class="vst-trades-table">
+                    <thead>
+                        <tr>
+                            ${ths}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
         `;
 
         this.tradesTableEl.querySelector('.vst-trades-export-btn')?.addEventListener('click', () => {
