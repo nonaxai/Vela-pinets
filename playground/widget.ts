@@ -4,7 +4,7 @@
 // Full Vela workspace features enabled: multi-chart layouts, shared drawing toolbar,
 // user drawing tools, bottom bar, symbol watermark, multi-venue providers, live bar replay,
 // and docked side panel + Code runner.
-import { VelaWorkspace } from '@luxalgo/vela/workspace';
+import { VelaWorkspace, encodeState } from '@luxalgo/vela/workspace';
 import { BinanceProvider } from '@luxalgo/vela/providers/binance';
 import { CoinbaseProvider } from '@luxalgo/vela/providers/coinbase';
 import { HyperliquidProvider } from '@luxalgo/vela/providers/hyperliquid';
@@ -13,7 +13,10 @@ import {
     registerIcon,
     registerSidePanel,
     registerDefaultEngine,
+    registerStatePersistence,
     type WidgetContext,
+    type CellStateContext,
+    type InputValue,
 } from '@luxalgo/vela/plugin';
 import { Dialog } from '@luxalgo/vela/ui';
 import { PineWorkerEngine } from '../src';
@@ -21,9 +24,84 @@ import { mountPineEditor } from './pine-editor';
 import { StrategyTester } from './strategy-tester';
 import type { IndicatorHandle, Vela } from '@luxalgo/vela';
 
+interface PersistedScriptItem {
+    id: string;
+    title: string;
+    source: string;
+    visible: boolean;
+    inputs?: Record<string, InputValue>;
+    props?: Record<string, InputValue>;
+}
+
+interface PersistedStrategyTesterState {
+    mode?: 'hidden' | 'docked' | 'expanded' | 'maximized';
+    view?: 'chart' | 'table';
+    height?: number;
+}
+
+interface PersistedAddonState {
+    version: number;
+    timestamp: number;
+    scripts: Record<string, PersistedScriptItem[]>;
+    drawings: Record<string, unknown>;
+    strategyTester: PersistedStrategyTesterState;
+}
+
 // App-wide default engine registration: any new chart or workspace cell automatically
 // uses PineWorkerEngine for 'pine' scripts.
 registerDefaultEngine('pine', () => new PineWorkerEngine());
+
+// State persistence seam: persist custom script indicators on each chart through Vela's cell ext bag
+registerStatePersistence({
+    key: 'pinets.custom-scripts',
+    scope: 'cell',
+    serialize(ctx: CellStateContext) {
+        const indicators = ctx.chart.indicators();
+        const scripts: PersistedScriptItem[] = [];
+        for (const h of indicators) {
+            if (h.source) {
+                scripts.push({
+                    id: h.id,
+                    title: h.title,
+                    source: h.source,
+                    visible: h.visible,
+                    inputs: typeof h.inputValues === 'function' ? h.inputValues() : {},
+                    props: typeof h.propValues === 'function' ? h.propValues() : {},
+                });
+            }
+        }
+        return scripts.length > 0 ? scripts : undefined;
+    },
+    restore(payload: unknown, ctx: CellStateContext) {
+        if (!Array.isArray(payload)) return;
+        const list = payload as PersistedScriptItem[];
+        void (async () => {
+            for (const s of list) {
+                if (typeof s?.source !== 'string') continue;
+                const existing = ctx.chart.indicators().find((i) => i.title === s.title || i.source === s.source);
+                if (!existing) {
+                    try {
+                        const res = await ctx.chart.runIndicator(s.source);
+                        if (res.ok && res.handle) {
+                            if (s.inputs && typeof res.handle.setInputs === 'function') {
+                                res.handle.setInputs(s.inputs);
+                            }
+                            if (s.props && typeof res.handle.setProps === 'function') {
+                                res.handle.setProps(s.props);
+                            }
+                            if (s.visible === false && typeof res.handle.setVisible === 'function') {
+                                res.handle.setVisible(false);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[vela-pinets] restore indicator failed:', e);
+                    }
+                }
+            }
+            syncActiveStrategy();
+        })();
+    },
+});
 
 // Worker-path instrumentation: count real Web Worker spawns so a browser probe can
 // PROVE Pine runs off the main thread through the addon (window.__workerSpawns >= 1).
@@ -160,6 +238,10 @@ registerIcon(
     'code',
     '<svg viewBox="0 0 16 16" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5.5 4.5-4 3.5 4 3.5M10.5 4.5l4 3.5-4 3.5"/></svg>',
 );
+registerIcon(
+    'cloud-save',
+    '<svg viewBox="0 0 16 16" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13.5h7a3.5 3.5 0 0 0 1.5-6.66A4.5 4.5 0 0 0 4.5 6.5a3 3 0 0 0 0 7z"/><path d="M8 8.5v4M6.5 10l1.5-1.5 1.5 1.5"/></svg>',
+);
 
 // ── "Replay" topbar entry — Bar Replay across the workspace ──
 registerWidgetAction({
@@ -262,6 +344,19 @@ async function runCode(ctx: WidgetContext): Promise<void> {
     }
 }
 
+// ── "Save" topbar entry — TradingView-style manual save & shortcut ──
+registerWidgetAction({
+    id: 'pinets.save',
+    target: 'topbar',
+    label: 'Save',
+    icon: 'cloud-save',
+    order: -5,
+    align: 'right',
+    run: (ctx) => {
+        saveAllCharts(ctx);
+    },
+});
+
 // ── "Pine Scripts" docked side panel ──
 registerSidePanel({
     id: 'pinets.scripts',
@@ -304,14 +399,152 @@ function syncActiveStrategy(): void {
     void strategyTester.bindStrategy(activeStrat);
 }
 
+function findSaveButton(): HTMLElement | null {
+    const btns = document.querySelectorAll<HTMLElement>('.vela-widget-action, .vela-widget-tool');
+    for (const b of btns) {
+        if (b.textContent?.trim().includes('Save') || b.getAttribute('aria-label') === 'Save') {
+            return b;
+        }
+    }
+    return null;
+}
+
+function setSaveButtonFeedback(): void {
+    const saveBtn = findSaveButton();
+    if (!saveBtn) return;
+    const textNode = Array.from(saveBtn.childNodes).find((n) => n.nodeType === Node.TEXT_NODE);
+    if (textNode) {
+        const originalText = textNode.textContent;
+        textNode.textContent = ' Saved ✓';
+        saveBtn.style.color = 'var(--vela-accent, #2962FF)';
+        setTimeout(() => {
+            textNode.textContent = originalText;
+            saveBtn.style.color = '';
+        }, 1500);
+    } else {
+        const orig = saveBtn.textContent;
+        saveBtn.textContent = 'Saved ✓';
+        saveBtn.style.color = 'var(--vela-accent, #2962FF)';
+        setTimeout(() => {
+            saveBtn.textContent = orig;
+            saveBtn.style.color = '';
+        }, 1500);
+    }
+}
+
+export function saveAllCharts(ctx?: WidgetContext): void {
+    try {
+        // 1. Force flush workspace state
+        const state = workspace.getState();
+        const encoded = encodeState(state);
+        localStorage.setItem('vela-workspace', encoded);
+
+        // 2. Gather all custom script indicators and drawings across all cells
+        const customScriptsByCell: Record<string, PersistedScriptItem[]> = {};
+        const drawingsByCell: Record<string, unknown> = {};
+
+        for (const cell of workspace.cells()) {
+            const chart = cell.chart;
+            const cellId = cell.id;
+
+            if (chart.drawings) {
+                try {
+                    drawingsByCell[cellId] = chart.drawings.toJSON();
+                } catch {
+                    // best effort
+                }
+            }
+
+            const scripts: PersistedScriptItem[] = [];
+
+            for (const h of chart.indicators()) {
+                if (h.source) {
+                    scripts.push({
+                        id: h.id,
+                        title: h.title,
+                        source: h.source,
+                        visible: h.visible,
+                        inputs: typeof h.inputValues === 'function' ? h.inputValues() : {},
+                        props: typeof h.propValues === 'function' ? h.propValues() : {},
+                    });
+                }
+            }
+            if (scripts.length > 0) {
+                customScriptsByCell[cellId] = scripts;
+            }
+        }
+
+        const addonBackup: PersistedAddonState = {
+            version: 1,
+            timestamp: Date.now(),
+            scripts: customScriptsByCell,
+            drawings: drawingsByCell,
+            strategyTester: {
+                mode: strategyTester.getMode(),
+                view: strategyTester.getView(),
+                height: strategyTester.getHeight(),
+            },
+        };
+        localStorage.setItem('vela-pinets-addon-state', JSON.stringify(addonBackup));
+
+        // 3. Visual feedback
+        setSaveButtonFeedback();
+
+        // 4. Toast notification
+        const msg = 'Saved all charts, drawings, and strategies';
+        if (ctx) {
+            ctx.toast(msg, 'success');
+        } else if (typeof workspace.toast === 'function') {
+            workspace.toast(msg, 'success');
+        }
+    } catch (err) {
+        console.error('[vela-pinets] saveAllCharts failed:', err);
+        const errMsg = 'Failed to save charts';
+        if (ctx) ctx.toast(errMsg, 'error');
+        else if (typeof workspace.toast === 'function') workspace.toast(errMsg, 'error');
+    }
+}
+
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleAutoSave(): void {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        autoSaveTimer = null;
+        saveAllCharts();
+    }, 600);
+}
+
 function attachChartSync(chart: Vela): () => void {
     const unsubs: Array<() => void> = [];
-    unsubs.push(chart.on('indicator:added', () => syncActiveStrategy()));
-    unsubs.push(chart.on('indicator:removed', () => syncActiveStrategy()));
-    unsubs.push(chart.on('indicator:visibility', () => syncActiveStrategy()));
-    unsubs.push(chart.on('indicator:inputs', () => syncActiveStrategy()));
+    unsubs.push(
+        chart.on('indicator:added', () => {
+            syncActiveStrategy();
+            scheduleAutoSave();
+        }),
+    );
+    unsubs.push(
+        chart.on('indicator:removed', () => {
+            syncActiveStrategy();
+            scheduleAutoSave();
+        }),
+    );
+    unsubs.push(
+        chart.on('indicator:visibility', () => {
+            syncActiveStrategy();
+            scheduleAutoSave();
+        }),
+    );
+    unsubs.push(
+        chart.on('indicator:inputs', () => {
+            syncActiveStrategy();
+            scheduleAutoSave();
+        }),
+    );
     unsubs.push(chart.on('market:changed', () => syncActiveStrategy()));
     unsubs.push(chart.on('load:end', () => syncActiveStrategy()));
+    unsubs.push(chart.on('drawing:created', () => scheduleAutoSave()));
+    unsubs.push(chart.on('drawing:edited', () => scheduleAutoSave()));
+    unsubs.push(chart.on('drawing:removed', () => scheduleAutoSave()));
     return () => {
         for (const u of unsubs) u();
     };
@@ -327,11 +560,232 @@ function rebindActiveCell(): void {
     syncActiveStrategy();
 }
 
+async function restoreSavedWorkspaceData(): Promise<void> {
+    try {
+        const raw = localStorage.getItem('vela-pinets-addon-state');
+        if (!raw) return;
+        const backup = JSON.parse(raw) as PersistedAddonState;
+        if (!backup || typeof backup !== 'object') return;
+
+        // Restore custom scripts for each cell
+        if (backup.scripts && typeof backup.scripts === 'object') {
+            for (const cell of workspace.cells()) {
+                const cellScripts = backup.scripts[cell.id] || backup.scripts['c1'];
+                if (Array.isArray(cellScripts)) {
+                    for (const s of cellScripts) {
+                        if (typeof s?.source !== 'string') continue;
+                        const existing = cell.chart.indicators().find((i) => i.title === s.title || i.source === s.source);
+                        if (!existing) {
+                            try {
+                                const res = await cell.chart.runIndicator(s.source);
+                                if (res.ok && res.handle) {
+                                    if (s.inputs && typeof res.handle.setInputs === 'function') {
+                                        res.handle.setInputs(s.inputs);
+                                    }
+                                    if (s.props && typeof res.handle.setProps === 'function') {
+                                        res.handle.setProps(s.props);
+                                    }
+                                    if (s.visible === false && typeof res.handle.setVisible === 'function') {
+                                        res.handle.setVisible(false);
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('[vela-pinets] restore indicator failed:', e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Restore drawings if present
+        if (backup.drawings && typeof backup.drawings === 'object') {
+            for (const cell of workspace.cells()) {
+                const cellDrawings = backup.drawings[cell.id] || backup.drawings['c1'];
+                if (cellDrawings && cell.chart.drawings) {
+                    try {
+                        cell.chart.drawings.fromJSON(cellDrawings);
+                    } catch (e) {
+                        console.warn('[vela-pinets] restore drawings failed:', e);
+                    }
+                }
+            }
+        }
+
+        // Restore Strategy Tester state
+        if (backup.strategyTester && typeof backup.strategyTester === 'object') {
+            const st = backup.strategyTester;
+            if (typeof st.height === 'number') {
+                strategyTester.setHeight(st.height);
+            }
+            if (st.view === 'chart' || st.view === 'table') {
+                strategyTester.setView(st.view);
+            }
+            if (st.mode && st.mode !== 'hidden') {
+                strategyTester.setMode(st.mode);
+            }
+        }
+
+        rebindActiveCell();
+        setTimeout(() => syncActiveStrategy(), 300);
+        setTimeout(() => syncActiveStrategy(), 1000);
+    } catch (err) {
+        console.warn('[vela-pinets] restoreSavedWorkspaceData failed:', err);
+    }
+}
+
+function initSaveTooltip(): void {
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const chordKbd = isMac ? '<kbd>⌘</kbd>' : '<kbd>Ctrl</kbd>';
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .vst-save-tooltip {
+            position: fixed;
+            z-index: 999999;
+            background: #1e222d;
+            border: 1px solid #363c4e;
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: #d1d4dc;
+            font-size: 13px;
+            line-height: 1.4;
+            font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+            display: none;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .vst-save-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: var(--vst-arrow-left, 50%);
+            width: 8px;
+            height: 8px;
+            background: #1e222d;
+            border-top: 1px solid #363c4e;
+            border-left: 1px solid #363c4e;
+            transform: translateX(-50%) rotate(45deg);
+        }
+        .vst-save-tt-text {
+            color: #d1d4dc;
+            font-size: 13px;
+            font-weight: 400;
+        }
+        .vst-save-tt-divider {
+            width: 1px;
+            height: 16px;
+            background: #363c4e;
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+        .vst-save-tt-shortcut {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .vst-save-tt-shortcut kbd {
+            background: #363a45;
+            color: #d1d4dc;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #434651;
+            font-family: inherit;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .vst-save-tt-plus {
+            color: #787b86;
+            font-size: 11px;
+            user-select: none;
+        }
+    `;
+    document.head.appendChild(styleEl);
+
+    const tooltipEl = document.createElement('div');
+    tooltipEl.className = 'vst-save-tooltip';
+    tooltipEl.innerHTML = `
+        <span class="vst-save-tt-text">Save all charts for all symbols and intervals on your layout</span>
+        <div class="vst-save-tt-divider"></div>
+        <div class="vst-save-tt-shortcut">${chordKbd} <span class="vst-save-tt-plus">+</span> <kbd>S</kbd></div>
+    `;
+    document.body.appendChild(tooltipEl);
+
+    function showTooltip(btn: HTMLElement) {
+        const rect = btn.getBoundingClientRect();
+        tooltipEl.style.display = 'flex';
+        const ttRect = tooltipEl.getBoundingClientRect();
+        let left = rect.left + rect.width / 2 - ttRect.width / 2;
+        if (left + ttRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - ttRect.width - 8;
+        }
+        if (left < 8) left = 8;
+        const top = rect.bottom + 8;
+        tooltipEl.style.left = `${left}px`;
+        tooltipEl.style.top = `${top}px`;
+        const arrowOffset = rect.left + rect.width / 2 - left;
+        tooltipEl.style.setProperty('--vst-arrow-left', `${arrowOffset}px`);
+    }
+
+    function hideTooltip() {
+        tooltipEl.style.display = 'none';
+    }
+
+    function bindButton(btn: HTMLElement) {
+        btn.addEventListener('mouseenter', () => showTooltip(btn));
+        btn.addEventListener('mouseleave', hideTooltip);
+        btn.addEventListener('focus', () => showTooltip(btn));
+        btn.addEventListener('blur', hideTooltip);
+    }
+
+    function scan() {
+        const btns = document.querySelectorAll<HTMLElement>('.vela-widget-action, .vela-widget-tool');
+        for (const b of btns) {
+            if (b.textContent?.trim().includes('Save') || b.getAttribute('aria-label') === 'Save') {
+                if (!b.dataset.saveBound) {
+                    b.dataset.saveBound = '1';
+                    bindButton(b);
+                }
+            }
+        }
+    }
+
+    scan();
+    const obs = new MutationObserver(() => scan());
+    obs.observe(document.body, { childList: true, subtree: true });
+}
+
+// Global keyboard shortcut
+window.addEventListener(
+    'keydown',
+    (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            e.stopPropagation();
+            saveAllCharts();
+        }
+    },
+    true,
+);
+
+// Auto-save on page unload
+window.addEventListener('beforeunload', () => {
+    saveAllCharts();
+});
+
 workspace.on('cell:active', () => rebindActiveCell());
 workspace.on('script:run', () => syncActiveStrategy());
 workspace.on('layout:changed', () => rebindActiveCell());
+workspace.on('state:changed', () => scheduleAutoSave());
 
-void workspace.cells()[0]?.chart.ready().then(() => {
+void workspace.cells()[0]?.chart.ready().then(async () => {
+    console.log('[vela-pinets] chart ready — Pine served by the addon engine');
     rebindActiveCell();
+    await restoreSavedWorkspaceData();
+    initSaveTooltip();
 });
 

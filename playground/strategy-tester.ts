@@ -827,8 +827,7 @@ export class StrategyTester {
                 flex-direction: column;
                 height: 100%;
                 background: #151619;
-                overflow-y: auto;
-                overflow-x: hidden;
+                overflow: hidden;
             }
             .vela-strategy-tester.is-open .vst-drawer-body {
                 display: flex;
@@ -843,9 +842,12 @@ export class StrategyTester {
                 align-items: center;
                 justify-content: space-between;
                 height: 42px;
+                min-height: 42px;
                 padding: 0 16px;
                 background: #151619;
                 border-bottom: 1px solid #2a2b30;
+                flex: none;
+                flex-shrink: 0;
             }
             .vst-strat-tab {
                 display: inline-flex;
@@ -861,11 +863,15 @@ export class StrategyTester {
                 border-left: 1px solid #2a2b30;
                 border-right: 1px solid #2a2b30;
                 color: #f0f3fa;
+                flex: none;
+                flex-shrink: 0;
             }
             .vst-header-actions {
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                flex: none;
+                flex-shrink: 0;
             }
 
             /* Secondary Controls Bar */
@@ -874,10 +880,18 @@ export class StrategyTester {
                 align-items: center;
                 gap: 10px;
                 height: 48px;
+                min-height: 48px;
                 padding: 0 16px;
                 background: #151619;
                 border-bottom: 1px solid #2a2b30;
                 overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-controls-bar > * {
+                flex-shrink: 0;
             }
             .vst-seg-group {
                 display: inline-flex;
@@ -1026,7 +1040,7 @@ export class StrategyTester {
             .vst-perf-section {
                 display: flex;
                 flex-direction: column;
-                flex: 1 1 auto;
+                flex: 1 1 0px;
                 min-height: 140px;
                 background: #151619;
                 overflow: hidden;
@@ -1199,7 +1213,7 @@ export class StrategyTester {
             .vst-trades-section {
                 display: flex;
                 flex-direction: column;
-                flex: 1 1 auto;
+                flex: 1 1 0px;
                 min-height: 0;
                 background: #151619;
                 overflow: hidden;
@@ -1207,7 +1221,7 @@ export class StrategyTester {
             .vst-trades-table-container {
                 display: flex;
                 flex-direction: column;
-                flex: 1 1 auto;
+                flex: 1 1 0px;
                 min-height: 0;
                 background: #151619;
                 overflow: hidden;
@@ -1217,10 +1231,12 @@ export class StrategyTester {
                 align-items: center;
                 justify-content: space-between;
                 height: 42px;
+                min-height: 42px;
                 padding: 0 20px;
                 border-bottom: 1px solid #2a2b30;
                 background: #151619;
                 flex: none;
+                flex-shrink: 0;
             }
             .vst-trades-header-title {
                 font-size: 15px;
@@ -1231,9 +1247,11 @@ export class StrategyTester {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                flex: none;
+                flex-shrink: 0;
             }
             .vst-trades-table-wrapper {
-                flex: 1 1 auto;
+                flex: 1 1 0px;
                 overflow-y: auto;
                 overflow-x: auto;
                 min-height: 0;
@@ -2457,7 +2475,23 @@ export class StrategyTester {
         return this.mode;
     }
 
-    private setView(view: 'chart' | 'table'): void {
+    public getView(): 'chart' | 'table' {
+        return this.currentView;
+    }
+
+    public getHeight(): number {
+        return this.currentHeight;
+    }
+
+    public setHeight(height: number): void {
+        this.currentHeight = Math.max(120, Math.min(window.innerHeight - 80, height));
+        if (this.mode === 'expanded') {
+            this.el.style.height = `${this.currentHeight}px`;
+            this.chartInstance?.resize();
+        }
+    }
+
+    public setView(view: 'chart' | 'table'): void {
         this.currentView = view;
         this.el.querySelectorAll('.vst-seg-btn').forEach((btn) => {
             btn.classList.toggle('is-active', (btn as HTMLElement).dataset.view === view);
