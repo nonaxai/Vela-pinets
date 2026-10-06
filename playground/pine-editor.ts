@@ -405,7 +405,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // Script Dropdown Trigger Button
     const scriptBtn = document.createElement('button');
     scriptBtn.style.cssText =
-        'all:unset;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--vela-radius-sm, 4px);background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg, #d1d4dc);font-size:12px;font-weight:600;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s,border-color 0.15s;';
+        'all:unset;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--vela-radius-sm, 4px);background:var(--vela-surface-elev, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);color:var(--vela-fg, #d1d4dc);font-size:12px;font-weight:600;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s,border-color 0.15s;';
     const scriptBtnText = document.createElement('span');
     scriptBtnText.style.cssText = 'overflow:hidden;text-overflow:ellipsis;';
     scriptBtnText.textContent = activeScript?.name ?? 'Select Script';
@@ -416,17 +416,17 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     scriptBtn.onmouseenter = () => {
         scriptBtn.style.background = 'var(--vela-hover, rgba(255, 255, 255, 0.06))';
-        scriptBtn.style.borderColor = 'var(--vela-border-strong, #34353b)';
+        scriptBtn.style.borderColor = 'var(--vela-border-strong, #383838)';
     };
     scriptBtn.onmouseleave = () => {
-        scriptBtn.style.background = 'var(--vela-surface-elev, #1c1d21)';
-        scriptBtn.style.borderColor = 'var(--vela-border, #2a2b30)';
+        scriptBtn.style.background = 'var(--vela-surface-elev, #1e1e1e)';
+        scriptBtn.style.borderColor = 'var(--vela-border, #2e2e2e)';
     };
 
     // Run Button (Image 1: prominent white/light pill button with play icon)
     const runBtn = document.createElement('button');
     runBtn.style.cssText =
-        'all:unset;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--vela-radius-sm, 4px);background:#f0f3fa;color:#131722;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.15s;flex-shrink:0;';
+        'all:unset;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--vela-radius-sm, 4px);background:#f0f3fa;color:#0f0f0f;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.15s;flex-shrink:0;';
     runBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span>Run</span>`;
 
     runBtn.onmouseenter = () => {
@@ -438,7 +438,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     // Thin vertical divider
     const divider = document.createElement('div');
-    divider.style.cssText = 'width:1px;height:16px;background:var(--vela-border, #2a2b30);margin:0 2px;flex-shrink:0;';
+    divider.style.cssText = 'width:1px;height:16px;background:var(--vela-border, #2e2e2e);margin:0 2px;flex-shrink:0;';
 
     // Action Icons (New, Duplicate, Star)
     const actionGroup = document.createElement('div');
@@ -513,7 +513,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Dropdown Popover Menu (Image 2) ──
     const dropdownMenu = document.createElement('div');
     dropdownMenu.style.cssText =
-        'position:absolute;z-index:9999;width:300px;background:var(--vela-surface-overlay, #1c1d21);border:1px solid var(--vela-border, #2a2b30);border-radius:6px;box-shadow:var(--vela-shadow-dialog, 0 8px 24px rgba(0,0,0,0.6));padding:6px 0;display:none;font-family:inherit;color:var(--vela-fg, #d1d4dc);max-height:380px;overflow-y:auto;';
+        'position:absolute;z-index:9999;width:300px;background:var(--vela-surface-overlay, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);border-radius:6px;box-shadow:var(--vela-shadow-dialog, 0 8px 24px rgba(0,0,0,0.6));padding:6px 0;display:none;font-family:inherit;color:var(--vela-fg, #d1d4dc);max-height:380px;overflow-y:auto;';
 
     document.body.appendChild(dropdownMenu);
 
@@ -548,7 +548,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         // Section: ALL SAVED SCRIPTS (User request: list of saved local pine files)
         const allHeader = document.createElement('div');
         allHeader.style.cssText =
-            'padding:10px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;border-top:1px solid var(--vela-border, #2a2b30);margin-top:4px;';
+            'padding:10px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;border-top:1px solid var(--vela-border, #2e2e2e);margin-top:4px;';
         allHeader.textContent = 'ALL SAVED SCRIPTS';
         dropdownMenu.appendChild(allHeader);
 
@@ -558,7 +558,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Bottom row: + New script
         const dividerEl = document.createElement('div');
-        dividerEl.style.cssText = 'height:1px;background:var(--vela-border, #2a2b30);margin:6px 0;';
+        dividerEl.style.cssText = 'height:1px;background:var(--vela-border, #2e2e2e);margin:6px 0;';
         dropdownMenu.appendChild(dividerEl);
 
         const newRow = document.createElement('div');
@@ -675,16 +675,16 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     // ── Body & Code Editor Layout ──
     body.style.cssText =
-        'padding:0;margin:0;display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--vela-bg, #151619);color:var(--vela-fg, #d1d4dc);font-family:var(--vela-font, sans-serif);';
+        'padding:0;margin:0;display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--vela-bg, #0f0f0f);color:var(--vela-fg, #d1d4dc);font-family:var(--vela-font, sans-serif);';
 
     const editorContainer = document.createElement('div');
     editorContainer.style.cssText =
-        'display:flex;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:var(--vela-bg, #151619);';
+        'display:flex;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:var(--vela-bg, #0f0f0f);';
 
     // Line Numbers Gutter
     const gutter = document.createElement('div');
     gutter.style.cssText =
-        'width:42px;flex-shrink:0;background:var(--vela-bg, #151619);border-right:1px solid var(--vela-border, #2a2b30);padding:12px 6px;text-align:right;user-select:none;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;color:var(--vela-fg-muted, #868a96);overflow:hidden;box-sizing:border-box;';
+        'width:42px;flex-shrink:0;background:var(--vela-bg, #0f0f0f);border-right:1px solid var(--vela-border, #2e2e2e);padding:12px 6px;text-align:right;user-select:none;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:22px;color:var(--vela-fg-muted, #868a96);overflow:hidden;box-sizing:border-box;';
 
     // Code Editor Wrapper (holds overlay + textarea + minimap)
     const codeAreaWrapper = document.createElement('div');
@@ -715,7 +715,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // Minimap (right edge)
     const minimap = document.createElement('div');
     minimap.style.cssText =
-        'width:42px;flex-shrink:0;background:transparent;border-left:1px solid var(--vela-border, #2a2b30);position:relative;overflow:hidden;user-select:none;cursor:pointer;';
+        'width:42px;flex-shrink:0;background:transparent;border-left:1px solid var(--vela-border, #2e2e2e);position:relative;overflow:hidden;user-select:none;cursor:pointer;';
     const minimapCanvas = document.createElement('canvas');
     minimapCanvas.style.cssText = 'width:100%;height:100%;display:block;';
     const minimapSlider = document.createElement('div');
@@ -729,12 +729,12 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Bottom Status Bar (Image 1) ──
     const statusBar = document.createElement('div');
     statusBar.style.cssText =
-        'height:28px;flex-shrink:0;background:var(--vela-bg, #151619);border-top:1px solid var(--vela-border, #2a2b30);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:11px;font-family:inherit;color:var(--vela-fg-muted, #868a96);';
+        'height:28px;flex-shrink:0;background:var(--vela-bg, #0f0f0f);border-top:1px solid var(--vela-border, #2e2e2e);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:11px;font-family:inherit;color:var(--vela-fg-muted, #868a96);';
 
     // Left: Logs toggle button (Image 1: ▾ Logs 0)
     const logsBtn = document.createElement('button');
     logsBtn.style.cssText =
-        'all:unset;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg-muted, #868a96);font-size:11px;cursor:pointer;transition:color 0.15s,background 0.15s;';
+        'all:unset;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);color:var(--vela-fg-muted, #868a96);font-size:11px;cursor:pointer;transition:color 0.15s,background 0.15s;';
     logsBtn.innerHTML = `<span>▾ Logs</span> <span style="font-weight:700;">0</span>`;
     logsBtn.onclick = () => {
         logsOpen = !logsOpen;
@@ -748,7 +748,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     const versionBadge = document.createElement('span');
     versionBadge.style.cssText =
-        'padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1c1d21);border:1px solid var(--vela-border, #2a2b30);color:var(--vela-fg-muted, #868a96);font-size:11px;';
+        'padding:2px 6px;border-radius:3px;background:var(--vela-surface-elev, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);color:var(--vela-fg-muted, #868a96);font-size:11px;';
     versionBadge.textContent = 'Pine v5';
 
     const statusMsg = document.createElement('span');
@@ -762,11 +762,11 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     // ── Logs Console Drawer (collapsible) ──
     const logsDrawer = document.createElement('div');
     logsDrawer.style.cssText =
-        'height:120px;flex-shrink:0;background:var(--vela-surface-sunken, #151619);border-top:1px solid var(--vela-border, #2a2b30);display:none;flex-direction:column;font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:var(--vela-fg, #d1d4dc);';
+        'height:120px;flex-shrink:0;background:var(--vela-surface-sunken, #0f0f0f);border-top:1px solid var(--vela-border, #2e2e2e);display:none;flex-direction:column;font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:var(--vela-fg, #d1d4dc);';
 
     const logsHeader = document.createElement('div');
     logsHeader.style.cssText =
-        'padding:4px 10px;background:var(--vela-surface-elev, #1c1d21);border-bottom:1px solid var(--vela-border, #2a2b30);display:flex;align-items:center;justify-content:space-between;color:var(--vela-fg-muted, #868a96);font-size:10px;';
+        'padding:4px 10px;background:var(--vela-surface-elev, #1e1e1e);border-bottom:1px solid var(--vela-border, #2e2e2e);display:flex;align-items:center;justify-content:space-between;color:var(--vela-fg-muted, #868a96);font-size:10px;';
     logsHeader.innerHTML = `<span>CONSOLE OUTPUT</span>`;
     const clearLogsBtn = document.createElement('button');
     clearLogsBtn.style.cssText = 'all:unset;cursor:pointer;color:var(--vela-fg-muted, #868a96);';

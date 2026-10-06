@@ -688,13 +688,13 @@ function initSaveTooltip(): void {
             flex-shrink: 0;
         }
         .vst-save-tt-shortcut kbd {
-            background: #363a45;
+            background: #2e2e2e;
             color: #d1d4dc;
             font-size: 11px;
             font-weight: 500;
             padding: 2px 6px;
             border-radius: 4px;
-            border: 1px solid #434651;
+            border: 1px solid #383838;
             font-family: inherit;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }

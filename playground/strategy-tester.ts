@@ -690,14 +690,14 @@ export class StrategyTester {
             .vela-strategy-tester {
                 position: relative;
                 width: 100%;
-                background: #151619;
+                background: #0f0f0f;
                 color: #d1d4dc;
                 font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
                 font-size: 13px;
                 user-select: none;
                 flex: none;
                 box-sizing: border-box;
-                border-top: 1px solid #2a2b30;
+                border-top: 1px solid #2e2e2e;
                 transition: height 0.08s cubic-bezier(0.2, 0, 0, 1);
             }
             .vela-strategy-tester * {
@@ -740,7 +740,7 @@ export class StrategyTester {
                 min-height: 0 !important;
             }
             .vst-perf-expand-chart.is-active {
-                background: #2a2e39 !important;
+                background: #242424 !important;
                 color: #ffffff !important;
             }
             .vst-inline-stats-strip {
@@ -785,7 +785,7 @@ export class StrategyTester {
                 color: #787b86;
             }
             .vst-inline-stat-divider {
-                color: #363a45;
+                color: #383838;
             }
 
             /* Resizer */
@@ -801,7 +801,7 @@ export class StrategyTester {
             .vst-resizer-line {
                 width: 100%;
                 height: 1px;
-                background: #363a45;
+                background: #383838;
                 transition: background 0.15s ease;
             }
             .vst-resizer:hover .vst-resizer-line {
@@ -816,7 +816,7 @@ export class StrategyTester {
                 justify-content: space-between;
                 height: 34px;
                 padding: 0 12px;
-                background: #151619;
+                background: #0f0f0f;
             }
             .vst-dock-left, .vst-dock-right {
                 display: flex;
@@ -839,7 +839,7 @@ export class StrategyTester {
                 border-radius: 4px;
             }
             .vst-title-btn:hover, .vst-tab-title-btn:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #f0f3fa;
             }
             .vst-chevron {
@@ -858,7 +858,7 @@ export class StrategyTester {
                 color: #787b86;
             }
             .vst-icon-btn:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #f0f3fa;
             }
 
@@ -867,7 +867,7 @@ export class StrategyTester {
                 display: none;
                 flex-direction: column;
                 height: 100%;
-                background: #151619;
+                background: #0f0f0f;
                 overflow: hidden;
             }
             .vela-strategy-tester.is-open .vst-drawer-body {
@@ -885,8 +885,8 @@ export class StrategyTester {
                 height: 42px;
                 min-height: 42px;
                 padding: 0 16px;
-                background: #151619;
-                border-bottom: 1px solid #2a2b30;
+                background: #0f0f0f;
+                border-bottom: 1px solid #2e2e2e;
                 flex: none;
                 flex-shrink: 0;
             }
@@ -896,13 +896,13 @@ export class StrategyTester {
                 gap: 8px;
                 height: 34px;
                 padding: 0 14px;
-                background: #1e2025;
+                background: #141414;
                 border-radius: 6px 6px 0 0;
                 font-weight: 600;
                 font-size: 13.5px;
-                border-top: 1px solid #2a2b30;
-                border-left: 1px solid #2a2b30;
-                border-right: 1px solid #2a2b30;
+                border-top: 1px solid #2e2e2e;
+                border-left: 1px solid #2e2e2e;
+                border-right: 1px solid #2e2e2e;
                 color: #f0f3fa;
                 flex: none;
                 flex-shrink: 0;
@@ -923,8 +923,8 @@ export class StrategyTester {
                 height: 48px;
                 min-height: 48px;
                 padding: 0 16px;
-                background: #151619;
-                border-bottom: 1px solid #2a2b30;
+                background: #0f0f0f;
+                border-bottom: 1px solid #2e2e2e;
                 overflow-x: auto;
                 overflow-y: hidden;
                 white-space: nowrap;
@@ -936,8 +936,8 @@ export class StrategyTester {
             }
             .vst-seg-group {
                 display: inline-flex;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                background: #141414;
+                border: 1px solid #2e2e2e;
                 border-radius: 6px;
                 overflow: hidden;
                 height: 34px;
@@ -957,7 +957,7 @@ export class StrategyTester {
                 color: #ffffff;
             }
             .vst-seg-btn.is-active {
-                background: #2a2b30;
+                background: #2e2e2e;
                 color: #f0f3fa;
             }
 
@@ -972,15 +972,15 @@ export class StrategyTester {
                 cursor: pointer;
                 color: #d1d4dc;
                 font-size: 13px;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                background: #141414;
+                border: 1px solid #2e2e2e;
                 white-space: nowrap;
                 transition: all 0.15s ease;
             }
             .vst-dropdown-pill:hover,
             .vst-dropdown-pill.is-active {
-                background: #2a2e39;
-                border-color: #34353b;
+                background: #242424;
+                border-color: #383838;
                 color: #f0f3fa;
             }
             .vst-dropdown-pill.is-active .vst-chevron {
@@ -1002,7 +1002,7 @@ export class StrategyTester {
                 height: 17px;
                 border-radius: 50%;
                 background: #f0f3fa;
-                color: #151619;
+                color: #0f0f0f;
                 font-size: 11px;
                 font-weight: 700;
                 line-height: 1;
@@ -1011,15 +1011,15 @@ export class StrategyTester {
             .vst-divider {
                 width: 1px;
                 height: 20px;
-                background: #2a2b30;
+                background: #2e2e2e;
                 margin: 0 4px;
             }
 
             /* Key stats */
             .vst-stats-card-container {
                 padding: 16px 20px 14px 20px;
-                background: #151619;
-                border-bottom: 1px solid #2a2b30;
+                background: #0f0f0f;
+                border-bottom: 1px solid #2e2e2e;
                 flex: none;
             }
             .vst-stats-title {
@@ -1096,7 +1096,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: none;
                 height: 340px;
-                background: #151619;
+                background: #0f0f0f;
                 overflow: hidden;
             }
             .vst-perf-header {
@@ -1190,7 +1190,7 @@ export class StrategyTester {
                 padding: 2px 7px;
                 border-radius: 4px;
                 background: rgba(27, 28, 33, 0.7);
-                border: 1px solid #2a2b30;
+                border: 1px solid #2e2e2e;
                 font-size: 11px;
                 color: #d1d4dc;
                 cursor: pointer;
@@ -1220,7 +1220,7 @@ export class StrategyTester {
                 margin-top: 2px;
                 border-radius: 3px;
                 background: rgba(27, 28, 33, 0.7);
-                border: 1px solid #2a2b30;
+                border: 1px solid #2e2e2e;
                 color: #787b86;
                 cursor: pointer;
             }
@@ -1231,8 +1231,8 @@ export class StrategyTester {
 
             /* Tooltip card for Run-ups and drawdowns (Image 5) */
             .vst-rd-card {
-                background: #1e2025;
-                border: 1px solid #363a45;
+                background: #141414;
+                border: 1px solid #383838;
                 border-radius: 5px;
                 padding: 8px 12px;
                 color: #d1d4dc;
@@ -1269,7 +1269,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: 1 1 0px;
                 min-height: 0;
-                background: #151619;
+                background: #0f0f0f;
                 overflow: hidden;
             }
             .vst-trades-table-container {
@@ -1277,7 +1277,7 @@ export class StrategyTester {
                 flex-direction: column;
                 flex: 1 1 0px;
                 min-height: 0;
-                background: #151619;
+                background: #0f0f0f;
                 overflow: hidden;
             }
             .vst-trades-header-bar {
@@ -1287,8 +1287,8 @@ export class StrategyTester {
                 height: 42px;
                 min-height: 42px;
                 padding: 0 20px;
-                border-bottom: 1px solid #2a2b30;
-                background: #151619;
+                border-bottom: 1px solid #2e2e2e;
+                background: #0f0f0f;
                 flex: none;
                 flex-shrink: 0;
             }
@@ -1318,18 +1318,18 @@ export class StrategyTester {
             .vst-trades-table th {
                 position: sticky;
                 top: 0;
-                background: #1e2025;
+                background: #141414;
                 padding: 8px 14px;
                 text-align: left;
                 color: #868a96;
-                border-bottom: 1px solid #2a2b30;
+                border-bottom: 1px solid #2e2e2e;
                 font-weight: 550;
                 z-index: 2;
                 white-space: nowrap;
             }
             .vst-trades-table td {
                 padding: 8px 14px;
-                border-bottom: 1px solid #20222c;
+                border-bottom: 1px solid #1e1e1e;
                 color: #d1d4dc;
                 font-variant-numeric: tabular-nums;
                 white-space: nowrap;
@@ -1341,8 +1341,8 @@ export class StrategyTester {
             /* Performance Analysis Section (media_1791250134285.png) */
             .vst-analysis-section {
                 padding: 16px 20px 24px 20px;
-                background: #151619;
-                border-top: 1px solid #2a2b30;
+                background: #0f0f0f;
+                border-top: 1px solid #2e2e2e;
                 flex: none;
             }
             .vst-analysis-title {
@@ -1366,7 +1366,7 @@ export class StrategyTester {
                 height: 30px;
                 padding: 0 16px;
                 border-radius: 15px;
-                background: #2a2e39;
+                background: #242424;
                 border: 1px solid transparent;
                 color: #868a96;
                 font-size: 13px;
@@ -1375,12 +1375,12 @@ export class StrategyTester {
                 transition: all 0.15s ease;
             }
             .vst-analysis-tab:hover {
-                background: #363a45;
+                background: #383838;
                 color: #ffffff;
             }
             .vst-analysis-tab.is-active {
                 background: #ffffff !important;
-                color: #131722 !important;
+                color: #0f0f0f !important;
                 border-color: #ffffff !important;
                 font-weight: 600 !important;
             }
@@ -1447,10 +1447,10 @@ export class StrategyTester {
             .vst-segmented-toggle {
                 display: inline-flex;
                 align-items: center;
-                background: #1e2025;
+                background: #141414;
                 border-radius: 6px;
                 padding: 2px;
-                border: 1px solid #2a2b30;
+                border: 1px solid #2e2e2e;
             }
             .vst-toggle-btn {
                 all: unset;
@@ -1466,12 +1466,81 @@ export class StrategyTester {
                 color: #d1d4dc;
             }
             .vst-toggle-btn.is-active {
-                background: #363a45;
+                background: #383838;
                 color: #ffffff;
                 font-weight: 600;
             }
 
-            /* Breakdown List */
+            /* Breakdown List & Tooltip */
+            .vst-analysis-body {
+                position: relative;
+            }
+            .vst-breakdown-tooltip {
+                position: absolute;
+                z-index: 100;
+                pointer-events: none;
+                opacity: 0;
+                transform: translateY(4px);
+                transition: opacity 0.1s ease, transform 0.1s ease;
+                background: #3d3d3d;
+                border-radius: 4px;
+                padding: 8px 12px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+                min-width: 195px;
+                font-size: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif;
+                color: #d1d4dc;
+            }
+            .vst-breakdown-tooltip.is-visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            .vst-bdt-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                line-height: 20px;
+                white-space: nowrap;
+            }
+            .vst-bdt-label {
+                display: flex;
+                align-items: center;
+                color: #d1d4dc;
+                font-weight: 400;
+            }
+            .vst-bdt-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .vst-bdt-dot.is-profit {
+                background: #089981;
+            }
+            .vst-bdt-dot.is-loss {
+                background: #f23645;
+            }
+            .vst-bdt-dot.is-comm {
+                background: #b8741a;
+            }
+            .vst-bdt-val {
+                font-weight: 400;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+                margin-left: 20px;
+            }
+            .vst-bdt-beak {
+                position: absolute;
+                bottom: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #3d3d3d;
+            }
             .vst-breakdown-list {
                 display: flex;
                 flex-direction: column;
@@ -1520,7 +1589,7 @@ export class StrategyTester {
                 top: 0;
                 bottom: 0;
                 width: 1px;
-                background: #363a45;
+                background: #383838;
                 z-index: 2;
             }
             .vst-breakdown-loss-group {
@@ -1571,7 +1640,7 @@ export class StrategyTester {
                 position: relative;
                 width: 100%;
                 height: 270px;
-                background: #151619;
+                background: #0f0f0f;
             }
             .vst-analysis-chart {
                 width: 100%;
@@ -1586,7 +1655,7 @@ export class StrategyTester {
                 height: 26px;
                 border-radius: 4px;
                 background: rgba(30, 32, 37, 0.85);
-                border: 1px solid #2a2b30;
+                border: 1px solid #2e2e2e;
                 color: #868a96;
                 display: flex;
                 align-items: center;
@@ -1596,9 +1665,9 @@ export class StrategyTester {
                 transition: all 0.15s ease;
             }
             .vst-analysis-nav-btn:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
-                border-color: #363a45;
+                border-color: #383838;
             }
             .vst-analysis-nav-btn.vst-nav-prev {
                 left: 4px;
@@ -1692,8 +1761,8 @@ export class StrategyTester {
             /* Trades Analysis (media_1791250361342.png) */
             .vst-trades-analysis-section {
                 padding: 16px 20px 24px 20px;
-                background: #151619;
-                border-top: 1px solid #2a2b30;
+                background: #0f0f0f;
+                border-top: 1px solid #2e2e2e;
                 flex: none;
             }
             .vst-trades-analysis-tabs {
@@ -1784,8 +1853,8 @@ export class StrategyTester {
             /* Dropdowns (Gambar 3, 4, 5) */
             .vst-dropdown-panel {
                 position: fixed;
-                background: #1e2025;
-                border: 1px solid #34353b;
+                background: #141414;
+                border: 1px solid #383838;
                 border-radius: 8px;
                 box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
                 padding: 8px 0;
@@ -1820,7 +1889,7 @@ export class StrategyTester {
                 width: 14px;
                 height: 14px;
                 border-radius: 50%;
-                background: #34353b;
+                background: #383838;
                 color: #a3a6af;
                 font-size: 10px;
                 font-weight: bold;
@@ -1839,7 +1908,7 @@ export class StrategyTester {
             }
             .vst-drop-divider {
                 height: 1px;
-                background: #2a2b30;
+                background: #2e2e2e;
                 margin: 6px 0;
             }
             .vst-drop-item {
@@ -1856,17 +1925,17 @@ export class StrategyTester {
                 transition: background 0.12s ease, color 0.12s ease;
             }
             .vst-drop-item:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
             }
             .vst-drop-item.is-selected {
                 background: #f0f3fa;
-                color: #151619;
+                color: #0f0f0f;
                 font-weight: 600;
             }
             .vst-drop-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #151619;
+                color: #0f0f0f;
             }
             .vst-drop-hint {
                 font-size: 12px;
@@ -1889,7 +1958,7 @@ export class StrategyTester {
                 transition: background 0.12s ease;
             }
             .vst-drop-custom-item:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
             }
 
@@ -1905,8 +1974,8 @@ export class StrategyTester {
                 all: unset;
                 width: 110px;
                 height: 34px;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                background: #141414;
+                border: 1px solid #2e2e2e;
                 border-radius: 6px;
                 padding: 0 10px;
                 color: #ffffff;
@@ -1925,8 +1994,8 @@ export class StrategyTester {
                 gap: 6px;
                 height: 34px;
                 padding: 0 10px;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                background: #141414;
+                border: 1px solid #2e2e2e;
                 border-radius: 6px;
                 color: #d1d4dc;
                 font-size: 12.5px;
@@ -1934,7 +2003,7 @@ export class StrategyTester {
                 min-width: 125px;
             }
             .vst-curr-toggle-btn:hover {
-                border-color: #34353b;
+                border-color: #383838;
                 color: #ffffff;
             }
             .vst-curr-toggle-btn.is-active .vst-chevron {
@@ -1944,8 +2013,8 @@ export class StrategyTester {
                 position: absolute;
                 top: 48px;
                 right: 12px;
-                background: #1e2025;
-                border: 1px solid #34353b;
+                background: #141414;
+                border: 1px solid #383838;
                 border-radius: 6px;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
                 padding: 4px 0;
@@ -1965,17 +2034,17 @@ export class StrategyTester {
                 color: #d1d4dc;
             }
             .vst-curr-item:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
             }
             .vst-curr-item.is-selected {
                 background: #f0f3fa;
-                color: #151619;
+                color: #0f0f0f;
                 font-weight: 600;
             }
             .vst-curr-item.is-selected:hover {
                 background: #e4e7ee;
-                color: #151619;
+                color: #0f0f0f;
             }
 
             /* Checkboxes (Script execution & Columns) */
@@ -1990,14 +2059,14 @@ export class StrategyTester {
                 transition: background 0.12s ease;
             }
             .vst-check-item:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
             }
             .vst-checkbox {
                 width: 16px;
                 height: 16px;
                 border-radius: 3px;
-                border: 1px solid #34353b;
+                border: 1px solid #383838;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -2026,17 +2095,17 @@ export class StrategyTester {
                 width: 28px;
                 height: 28px;
                 border-radius: 4px;
-                background: #1e2025;
-                border: 1px solid #2a2b30;
+                background: #141414;
+                border: 1px solid #2e2e2e;
                 color: #868a96;
                 cursor: pointer;
                 transition: all 0.12s ease;
             }
             .vst-trades-action-btn:hover,
             .vst-trades-action-btn.is-active {
-                background: #2a2e39;
+                background: #242424;
                 color: #f0f3fa;
-                border-color: #34353b;
+                border-color: #383838;
             }
 
             /* Switches (Scale & Whitespace) */
@@ -2051,13 +2120,13 @@ export class StrategyTester {
                 transition: background 0.12s ease;
             }
             .vst-switch-item:hover {
-                background: #2a2e39;
+                background: #242424;
                 color: #ffffff;
             }
             .vst-switch-track {
                 width: 32px;
                 height: 18px;
-                background: #34353b;
+                background: #383838;
                 border-radius: 10px;
                 position: relative;
                 transition: background 0.15s ease;
@@ -2077,7 +2146,7 @@ export class StrategyTester {
             }
             .vst-switch-track.is-on .vst-switch-thumb {
                 transform: translateX(14px);
-                background: #151619;
+                background: #0f0f0f;
             }
         `;
         document.head.appendChild(style);
@@ -2137,7 +2206,7 @@ export class StrategyTester {
         // Screenshot icon
         this.el.querySelector('.vst-perf-screenshot')?.addEventListener('click', () => {
             if (!this.chartInstance) return;
-            const url = this.chartInstance.getDataURL({ pixelRatio: 2, backgroundColor: '#151619' });
+            const url = this.chartInstance.getDataURL({ pixelRatio: 2, backgroundColor: '#0f0f0f' });
             const a = document.createElement('a');
             a.href = url;
             a.download = `backtest-${this.activeHandle?.title || 'strategy'}-${Date.now()}.png`;
@@ -2322,8 +2391,8 @@ export class StrategyTester {
         menu.className = 'vst-strategy-dropdown-menu';
         menu.style.cssText = `
             position: absolute;
-            background: #1e2025;
-            border: 1px solid #363a45;
+            background: #141414;
+            border: 1px solid #383838;
             border-radius: 6px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             padding: 6px 0;
@@ -2341,7 +2410,7 @@ export class StrategyTester {
             menu.style.top = `${rect.bottom + 6}px`;
         }
 
-        let itemsHtml = '<div style="padding:4px 12px 6px;font-size:11px;font-weight:700;color:#787b86;border-bottom:1px solid #2a2b30;">Active Chart Strategies</div>';
+        let itemsHtml = '<div style="padding:4px 12px 6px;font-size:11px;font-weight:700;color:#787b86;border-bottom:1px solid #2e2e2e;">Active Chart Strategies</div>';
 
         if (strategies.length === 0) {
             itemsHtml += '<div style="padding:8px 12px;color:#787b86;">No strategy indicators on chart</div>';
@@ -2349,7 +2418,7 @@ export class StrategyTester {
             for (const s of strategies) {
                 const isActive = s.id === this.activeHandle?.id;
                 itemsHtml += `
-                    <div class="vst-strat-item" data-id="${s.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;${isActive ? 'background:#2a2e39;color:#089981;font-weight:600;' : ''}">
+                    <div class="vst-strat-item" data-id="${s.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;${isActive ? 'background:#242424;color:#089981;font-weight:600;' : ''}">
                         <div style="display:flex;align-items:center;gap:6px;">
                             <span style="color:${isActive ? '#089981' : '#787b86'}">${isActive ? '✓' : '•'}</span>
                             <span>${this.extractTitle(s)}</span>
@@ -3220,15 +3289,15 @@ export class StrategyTester {
 
     private renderAnalysisBreakdown(): void {
         const stats = this.cachedStats;
-        const grossProfit = stats?.grossProfit ?? 15173.24;
-        const grossLoss = stats?.grossLoss ?? 4847.01;
-        const profitFactor = stats?.profitFactor ?? 3.13;
-        const initCap = stats?.initialCapital ?? 10000;
+        const grossProfit = (stats && stats.grossProfit) ? stats.grossProfit : 15173.24;
+        const grossLoss = (stats && stats.grossLoss) ? stats.grossLoss : 4847.01;
+        const profitFactor = (stats && stats.profitFactor) ? stats.profitFactor : 3.13;
+        const initCap = stats?.initialCapital || 10000;
         const grossProfitPct = ((grossProfit / initCap) * 100).toFixed(2);
         const grossLossPct = ((grossLoss / initCap) * 100).toFixed(2);
         const curr = stats?.currency || 'NONE';
 
-        // 4 summary metrics (media_1791250134285.png)
+        // 4 summary metrics (media_1791253627698.png & media_1791250134285.png)
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
@@ -3275,12 +3344,17 @@ export class StrategyTester {
             </div>
         `;
 
-        // Two-way breakdown horizontal bars (media_1791250134285.png & media_1791250140323.png)
+        // Two-way breakdown horizontal bars (media_1791253627698.png & media_1791250140323.png)
         let rowsHtml = '';
         if (this.breakdownSubMode === 'signals') {
             rowsHtml = `
                 <div class="vst-breakdown-list">
-                    <div class="vst-breakdown-row" title="Gross loss: 4,847.01 | Gross profit: 15,173.24 | Net: +10,326.23">
+                    <div class="vst-breakdown-row"
+                         data-profits="${formatNumber(grossProfit)}"
+                         data-losses="-${formatNumber(grossLoss)}"
+                         data-comm="0"
+                         data-pf="${profitFactor.toFixed(2)}"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">All signals</div>
                         <div class="vst-breakdown-bar-track">
                             <div class="vst-breakdown-guide-line"></div>
@@ -3295,7 +3369,12 @@ export class StrategyTester {
                         </div>
                         <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
                     </div>
-                    <div class="vst-breakdown-row" title="Gross loss: 2,644.66 | Gross profit: 13,850.50 | Net: +11,205.84">
+                    <div class="vst-breakdown-row"
+                         data-profits="13,850.50"
+                         data-losses="-2,644.66"
+                         data-comm="0"
+                         data-pf="5.24"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">Golden Cross BUY</div>
                         <div class="vst-breakdown-bar-track">
                             <div class="vst-breakdown-guide-line"></div>
@@ -3310,7 +3389,12 @@ export class StrategyTester {
                         </div>
                         <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
                     </div>
-                    <div class="vst-breakdown-row" title="Gross loss: 2,202.35 | Gross profit: 1,322.74 | Net: -879.61">
+                    <div class="vst-breakdown-row"
+                         data-profits="1,322.74"
+                         data-losses="-2,202.35"
+                         data-comm="0"
+                         data-pf="0.60"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">Death Cross SELL</div>
                         <div class="vst-breakdown-bar-track">
                             <div class="vst-breakdown-guide-line"></div>
@@ -3330,7 +3414,12 @@ export class StrategyTester {
         } else {
             rowsHtml = `
                 <div class="vst-breakdown-list">
-                    <div class="vst-breakdown-row" title="Gross loss: 4,847.01 | Gross profit: 15,173.24 | Net: +10,326.23">
+                    <div class="vst-breakdown-row"
+                         data-profits="${formatNumber(grossProfit)}"
+                         data-losses="-${formatNumber(grossLoss)}"
+                         data-comm="0"
+                         data-pf="${profitFactor.toFixed(2)}"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">Both sides</div>
                         <div class="vst-breakdown-bar-track">
                             <div class="vst-breakdown-guide-line"></div>
@@ -3345,7 +3434,12 @@ export class StrategyTester {
                         </div>
                         <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
                     </div>
-                    <div class="vst-breakdown-row" title="Gross loss: 2,644.66 | Gross profit: 13,850.50 | Net: +11,205.84">
+                    <div class="vst-breakdown-row"
+                         data-profits="13,850.50"
+                         data-losses="-2,644.66"
+                         data-comm="0"
+                         data-pf="5.24"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">
                             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l8-8M6 4h6v6"/></svg>
                             Longs
@@ -3363,7 +3457,12 @@ export class StrategyTester {
                         </div>
                         <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
                     </div>
-                    <div class="vst-breakdown-row" title="Gross loss: 2,202.35 | Gross profit: 1,322.74 | Net: -879.61">
+                    <div class="vst-breakdown-row"
+                         data-profits="1,322.74"
+                         data-losses="-2,202.35"
+                         data-comm="0"
+                         data-pf="0.60"
+                         data-unit="${curr}">
                         <div class="vst-breakdown-label">
                             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 6v6H6"/></svg>
                             Shorts
@@ -3385,7 +3484,29 @@ export class StrategyTester {
             `;
         }
 
-        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + rowsHtml;
+        const tooltipHtml = `
+            <div class="vst-breakdown-tooltip" id="vst-breakdown-tooltip">
+                <div class="vst-bdt-row">
+                    <div class="vst-bdt-label"><span class="vst-bdt-dot is-profit"></span>Profits</div>
+                    <div class="vst-bdt-val" id="vst-bdt-profits">15,173.24 NONE</div>
+                </div>
+                <div class="vst-bdt-row">
+                    <div class="vst-bdt-label"><span class="vst-bdt-dot is-loss"></span>Losses</div>
+                    <div class="vst-bdt-val" id="vst-bdt-losses">-4,847.01 NONE</div>
+                </div>
+                <div class="vst-bdt-row">
+                    <div class="vst-bdt-label"><span class="vst-bdt-dot is-comm"></span>Commissions</div>
+                    <div class="vst-bdt-val" id="vst-bdt-comm">0 NONE</div>
+                </div>
+                <div class="vst-bdt-row">
+                    <div class="vst-bdt-label" style="padding-left: 14px;">Profit factor</div>
+                    <div class="vst-bdt-val" id="vst-bdt-pf">3.13</div>
+                </div>
+                <div class="vst-bdt-beak" id="vst-bdt-beak"></div>
+            </div>
+        `;
+
+        this.analysisBodyEl.innerHTML = metricsHtml + subnavHtml + rowsHtml + tooltipHtml;
 
         // Attach By signals / By side toggle listener
         this.analysisBodyEl.querySelectorAll('#vst-breakdown-submode-toggle .vst-toggle-btn').forEach((btn) => {
@@ -3396,6 +3517,71 @@ export class StrategyTester {
                     this.breakdownSubMode = mode;
                     this.renderAnalysisBreakdown();
                 }
+            });
+        });
+
+        // Attach breakdown tooltip listeners (media_1791253627698.png)
+        this.attachBreakdownTooltipListeners();
+    }
+
+    private attachBreakdownTooltipListeners(): void {
+        const tooltipEl = this.analysisBodyEl.querySelector('#vst-breakdown-tooltip') as HTMLElement;
+        const beakEl = this.analysisBodyEl.querySelector('#vst-bdt-beak') as HTMLElement;
+        const profitsEl = this.analysisBodyEl.querySelector('#vst-bdt-profits') as HTMLElement;
+        const lossesEl = this.analysisBodyEl.querySelector('#vst-bdt-losses') as HTMLElement;
+        const commEl = this.analysisBodyEl.querySelector('#vst-bdt-comm') as HTMLElement;
+        const pfEl = this.analysisBodyEl.querySelector('#vst-bdt-pf') as HTMLElement;
+
+        if (!tooltipEl || !beakEl) return;
+
+        const rows = this.analysisBodyEl.querySelectorAll('.vst-breakdown-row');
+        rows.forEach((row) => {
+            const rowEl = row as HTMLElement;
+            const barTrack = rowEl.querySelector('.vst-breakdown-bar-track') as HTMLElement;
+
+            const onMove = (e: MouseEvent) => {
+                const bodyRect = this.analysisBodyEl.getBoundingClientRect();
+                const trackRect = barTrack ? barTrack.getBoundingClientRect() : rowEl.getBoundingClientRect();
+
+                // Update contents from row dataset
+                const profits = rowEl.dataset.profits || '0.00';
+                const losses = rowEl.dataset.losses || '0.00';
+                const comm = rowEl.dataset.comm || '0';
+                const pf = rowEl.dataset.pf || '0.00';
+                const unit = rowEl.dataset.unit || 'NONE';
+
+                if (profitsEl) profitsEl.textContent = `${profits} ${unit}`;
+                if (lossesEl) lossesEl.textContent = `${losses} ${unit}`;
+                if (commEl) commEl.textContent = `${comm} ${unit}`;
+                if (pfEl) pfEl.textContent = pf;
+
+                // Compute dimensions
+                const tooltipWidth = tooltipEl.offsetWidth || 205;
+                const tooltipHeight = tooltipEl.offsetHeight || 105;
+
+                // Horizontal position: center tooltip on cursor X
+                const cursorX = e.clientX - bodyRect.left;
+                const minLeft = 8;
+                const maxLeft = bodyRect.width - tooltipWidth - 8;
+                const tooltipLeft = Math.max(minLeft, Math.min(cursorX - tooltipWidth / 2, maxLeft));
+
+                // Beak points at cursor X
+                const beakX = Math.max(14, Math.min(cursorX - tooltipLeft, tooltipWidth - 14));
+                beakEl.style.left = `${beakX}px`;
+
+                // Vertical position: right above the row
+                const rowTop = (barTrack ? trackRect.top : rowEl.getBoundingClientRect().top) - bodyRect.top;
+                const tooltipTop = rowTop - tooltipHeight - 8;
+
+                tooltipEl.style.left = `${tooltipLeft}px`;
+                tooltipEl.style.top = `${tooltipTop}px`;
+                tooltipEl.classList.add('is-visible');
+            };
+
+            rowEl.addEventListener('mouseenter', onMove);
+            rowEl.addEventListener('mousemove', onMove);
+            rowEl.addEventListener('mouseleave', () => {
+                tooltipEl.classList.remove('is-visible');
             });
         });
     }
@@ -3514,7 +3700,7 @@ export class StrategyTester {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
                 backgroundColor: '#1e222d',
-                borderColor: '#363a45',
+                borderColor: '#383838',
                 borderWidth: 1,
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
                 formatter: (params: unknown) => {
@@ -3538,14 +3724,14 @@ export class StrategyTester {
             xAxis: {
                 type: 'category',
                 data: categories,
-                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisLine: { lineStyle: { color: '#2e2e2e' } },
                 axisTick: { show: false },
                 axisLabel: { color: '#787b86', fontSize: 11 },
             },
             yAxis: {
                 type: 'value',
                 position: 'right',
-                splitLine: { lineStyle: { color: '#20222c' } },
+                splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
                     fontSize: 11,
@@ -3686,7 +3872,7 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 backgroundColor: '#1e222d',
-                borderColor: '#363a45',
+                borderColor: '#383838',
                 borderWidth: 1,
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
                 formatter: (params: unknown) => {
@@ -3708,7 +3894,7 @@ export class StrategyTester {
             xAxis: {
                 type: 'category',
                 data: dates,
-                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisLine: { lineStyle: { color: '#2e2e2e' } },
                 axisTick: { show: false },
                 axisLabel: { color: '#787b86', fontSize: 11 },
             },
@@ -3718,7 +3904,7 @@ export class StrategyTester {
                 min: -1600000,
                 max: 1600000,
                 interval: 800000,
-                splitLine: { lineStyle: { color: '#20222c' } },
+                splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
                     fontSize: 11,
@@ -3974,8 +4160,8 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#2a2e39',
-                borderColor: '#363a45',
+                backgroundColor: '#1e1e1e',
+                borderColor: '#383838',
                 borderWidth: 1,
                 padding: [8, 12],
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
@@ -4005,7 +4191,7 @@ export class StrategyTester {
                 min: 0,
                 max: 18.56,
                 interval: 4.64,
-                splitLine: { lineStyle: { color: '#20222c' } },
+                splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
                     fontSize: 11,
@@ -4193,8 +4379,8 @@ export class StrategyTester {
                 },
                 tooltip: {
                     trigger: 'item',
-                    backgroundColor: '#2a2e39',
-                    borderColor: '#363a45',
+                    backgroundColor: '#1e1e1e',
+                    borderColor: '#383838',
                     borderWidth: 1,
                     padding: [8, 12],
                     textStyle: { color: '#d1d4dc', fontSize: 12 },
@@ -4219,7 +4405,7 @@ export class StrategyTester {
                 xAxis: {
                     type: 'category',
                     data: ['-40%', '-30%', '-20%', '-10%', '', '0%', '10%', '20%', '30%', '40%', '50%', '60%', ''],
-                    axisLine: { lineStyle: { color: '#2a2b30' } },
+                    axisLine: { lineStyle: { color: '#2e2e2e' } },
                     axisTick: { show: false },
                     axisLabel: {
                         color: '#787b86',
@@ -4233,7 +4419,7 @@ export class StrategyTester {
                     min: 0,
                     max: 35,
                     interval: 10,
-                    splitLine: { lineStyle: { color: '#20222c' } },
+                    splitLine: { lineStyle: { color: '#1e1e1e' } },
                     axisLabel: { color: '#787b86', fontSize: 11 },
                 },
                 series: [
@@ -4271,8 +4457,8 @@ export class StrategyTester {
                 animation: false,
                 tooltip: {
                     trigger: 'item',
-                    backgroundColor: '#2a2e39',
-                    borderColor: '#363a45',
+                    backgroundColor: '#1e1e1e',
+                    borderColor: '#383838',
                     borderWidth: 1,
                     textStyle: { color: '#d1d4dc', fontSize: 12 },
                     formatter: '{b}: {c} trades ({d}%)',
@@ -4442,8 +4628,8 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#2a2e39',
-                borderColor: '#363a45',
+                backgroundColor: '#1e1e1e',
+                borderColor: '#383838',
                 borderWidth: 1,
                 padding: [8, 12],
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
@@ -4481,7 +4667,7 @@ export class StrategyTester {
                 min: isCount ? -6 : -700,
                 max: isCount ? 6 : 2100,
                 interval: isCount ? 3 : 700,
-                splitLine: { lineStyle: { color: '#20222c' } },
+                splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
                     fontSize: 11,
@@ -4577,8 +4763,8 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#2a2e39',
-                borderColor: '#363a45',
+                backgroundColor: '#1e1e1e',
+                borderColor: '#383838',
                 borderWidth: 1,
                 padding: [8, 12],
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
@@ -4616,7 +4802,7 @@ export class StrategyTester {
             xAxis: {
                 type: 'category',
                 data: months,
-                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisLine: { lineStyle: { color: '#2e2e2e' } },
                 axisTick: { show: false },
                 axisLabel: { color: '#787b86', fontSize: 11 },
             },
@@ -4626,7 +4812,7 @@ export class StrategyTester {
                 min: 0,
                 max: 16,
                 interval: 4,
-                splitLine: { lineStyle: { color: '#20222c' } },
+                splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: { color: '#787b86', fontSize: 11 },
             },
             legend: {
@@ -4781,7 +4967,7 @@ export class StrategyTester {
                 type: 'category',
                 gridIndex: 0,
                 data: timeline,
-                axisLine: { lineStyle: { color: '#2a2b30' } },
+                axisLine: { lineStyle: { color: '#2e2e2e' } },
                 axisLabel: { color: '#787b86', fontSize: 10.5 },
             });
             yAxis.push({
@@ -4818,7 +5004,7 @@ export class StrategyTester {
                     min: minTime,
                     max: maxTime,
                     splitNumber: 15,
-                    axisLine: { lineStyle: { color: '#2a2b30' } },
+                    axisLine: { lineStyle: { color: '#2e2e2e' } },
                     axisTick: { show: false },
                     axisLabel: {
                         show: isBottomGrid,
@@ -4834,7 +5020,7 @@ export class StrategyTester {
                     gridIndex: cat.gridIndex,
                     data: timeline,
                     boundaryGap: cat.id === 'equity' ? false : true,
-                    axisLine: { lineStyle: { color: '#2a2b30' } },
+                    axisLine: { lineStyle: { color: '#2e2e2e' } },
                     axisTick: { show: false },
                     axisLabel: {
                         show: isBottomGrid,
@@ -5170,7 +5356,7 @@ export class StrategyTester {
         }
 
         const option: echarts.EChartsOption = {
-            backgroundColor: '#151619',
+            backgroundColor: '#0f0f0f',
             animation: false,
             dataZoom: [
                 {
@@ -5189,7 +5375,7 @@ export class StrategyTester {
                 axisPointer: {
                     type: 'cross',
                     label: {
-                        backgroundColor: '#2a2b30',
+                        backgroundColor: '#2e2e2e',
                         color: '#ffffff',
                     },
                     lineStyle: {
@@ -5236,7 +5422,7 @@ export class StrategyTester {
                         const cumPnlVal = cumPnl[idx] ?? 0;
 
                         return `
-                            <div style="background:#1e2025;border:1px solid #363a45;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                            <div style="background:#141414;border:1px solid #383838;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
                                 <div style="font-weight:700;color:#ffffff;margin-bottom:6px;">Trade #${idx + 1}</div>
                                 <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
                                     <span style="color:#787b86;">Max run-up:</span>
@@ -5263,7 +5449,7 @@ export class StrategyTester {
 
                     // Combined / Multi-pane tooltip (Image 3)
                     let html = `
-                        <div style="background:#1e2025;border:1px solid #363a45;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                        <div style="background:#141414;border:1px solid #383838;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
                             <div style="font-weight:700;margin-bottom:4px;color:#ffffff;">${date}</div>
                     `;
 
