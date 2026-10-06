@@ -38,8 +38,6 @@ function formatSignedNumber(val: number, decimals = 2): string {
 /** Generates realistic demo backtest trades matching the user's reference screenshots */
 function generateReferenceData() {
     const initialCapital = 10000;
-    const startYear = 1899;
-    const endYear = 2026;
     const totalTrades = 91;
     const wins = 40;
     const losses = 51;
@@ -77,12 +75,13 @@ function generateReferenceData() {
         439.93, 439.91
     ];
 
+    const timestamps: number[] = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     let currentEquity = 0;
     for (let i = 0; i < totalTrades; i++) {
-        const yearFraction = startYear + (i / (totalTrades - 1)) * (endYear - startYear);
-        const year = Math.floor(yearFraction);
+        // Trade 0 in 1899, then gap to 1935-2016 matching TradingView screenshot Image 1 & 3
+        const year = i === 0 ? 1899 : Math.floor(1935 + ((i - 1) / (totalTrades - 2)) * (2016 - 1935));
         const month = 1 + ((i * 3) % 12);
         const day = 1 + ((i * 7) % 27);
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -200,6 +199,8 @@ function generateReferenceData() {
             maxDrawdown: drawdownVal,
             maxRunup: runupVal,
         });
+
+        timestamps.push(exitTime);
     }
 
     return {
@@ -217,6 +218,7 @@ function generateReferenceData() {
             currency: 'NONE',
         },
         timeline,
+        timestamps,
         cumPnlData,
         buyHoldData,
         tradeBars,
@@ -315,6 +317,7 @@ export class StrategyTester {
     // Data cache
     private cachedStats: BacktestSummaryStats | null = null;
     private cachedTimeline: string[] = [];
+    private cachedTimestamps: number[] = [];
     private cachedCumPnl: number[] = [];
     private cachedBuyHold: number[] = [];
     private cachedTradeBars: Array<{ value: [number, number]; itemStyle: { color: string } }> = [];
@@ -466,9 +469,14 @@ export class StrategyTester {
                         <svg class="vst-chevron" viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1l4 4 4-4"/></svg>
                     </button>
 
-                    <button class="vst-dropdown-pill vst-exec-filter" title="Execution mode">
-                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13l4-5 3 3 5-7M11 4h3v3"/></svg>
-                        <span>Script execution <span class="vst-badge-num">❶</span></span>
+                    <button class="vst-dropdown-pill vst-exec-filter" title="Script execution">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 2v3.5M1.5 4L3 5.5l1.5-1.5"/>
+                            <path d="M7 14v-3.5M5.5 12l1.5-1.5 1.5 1.5"/>
+                            <path d="M2.5 9c1.5-2.5 3.5-3.5 5.5-0.5s3.5 2 5.5-2"/>
+                        </svg>
+                        <span>Script execution</span>
+                        <span class="vst-badge-circle">1</span>
                         <svg class="vst-chevron" viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1l4 4 4-4"/></svg>
                     </button>
 
@@ -905,6 +913,20 @@ export class StrategyTester {
                 display: inline-flex;
                 margin-left: 3px;
                 font-size: 11px;
+            }
+            .vst-badge-circle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 17px;
+                height: 17px;
+                border-radius: 50%;
+                background: #ffffff;
+                color: #131722;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1;
+                margin-left: 2px;
             }
             .vst-divider {
                 width: 1px;
@@ -1473,13 +1495,37 @@ export class StrategyTester {
                 flex: none;
             }
             .vst-check-item.is-checked .vst-checkbox {
-                background: #2962ff;
-                border-color: #2962ff;
+                background: #545763;
+                border-color: #545763;
             }
             .vst-check-info {
+                display: inline-flex;
+                align-items: center;
                 margin-left: auto;
                 color: #787b86;
                 font-size: 12px;
+            }
+
+            /* Trades Actions Buttons (media_1791243438337.png) */
+            .vst-trades-action-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                border-radius: 4px;
+                background: transparent;
+                border: 1px solid #363a45;
+                color: #787b86;
+                cursor: pointer;
+                transition: all 0.12s ease;
+            }
+            .vst-trades-action-btn:hover,
+            .vst-trades-action-btn.is-active {
+                background: #2a2e39;
+                color: #ffffff;
+                border-color: #4e5260;
             }
 
             /* Switches (Scale & Whitespace) */
@@ -1506,7 +1552,7 @@ export class StrategyTester {
                 transition: background 0.15s ease;
             }
             .vst-switch-track.is-on {
-                background: #2962ff;
+                background: #ffffff;
             }
             .vst-switch-thumb {
                 width: 14px;
@@ -1516,10 +1562,11 @@ export class StrategyTester {
                 position: absolute;
                 top: 2px;
                 left: 2px;
-                transition: transform 0.15s ease;
+                transition: transform 0.15s ease, background 0.15s ease;
             }
             .vst-switch-track.is-on .vst-switch-thumb {
                 transform: translateX(14px);
+                background: #131722;
             }
         `;
         document.head.appendChild(style);
@@ -1823,7 +1870,10 @@ export class StrategyTester {
         this.activeDropdownEl = panel;
 
         const rect = anchorBtn.getBoundingClientRect();
-        panel.style.left = `${Math.max(10, Math.min(window.innerWidth - width - 10, rect.left))}px`;
+        const leftPos = rect.right - width >= 10 && rect.left + width > window.innerWidth
+            ? rect.right - width
+            : Math.max(10, Math.min(window.innerWidth - width - 10, rect.left));
+        panel.style.left = `${leftPos}px`;
 
         const spaceBelow = window.innerHeight - rect.bottom;
         if (spaceBelow < 280 && rect.top > 280) {
@@ -2102,7 +2152,9 @@ export class StrategyTester {
                     <div class="vst-check-item ${isChecked ? 'is-checked' : ''}" data-key="${m.key}">
                         <div class="vst-checkbox">${isChecked ? '✓' : ''}</div>
                         <span>${m.label}</span>
-                        <span class="vst-check-info" title="${m.desc}">ⓘ</span>
+                        <span class="vst-check-info" title="${m.desc}">
+                            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 4.8h.01"/></svg>
+                        </span>
                     </div>
                 `;
             }
@@ -2113,7 +2165,15 @@ export class StrategyTester {
                 e.stopPropagation();
                 this.selectedExecModes = ['close'];
                 this.updateExecBadge();
-                this.closeAnyDropdown();
+                panel.querySelectorAll('.vst-check-item').forEach((el) => {
+                    const k = (el as HTMLElement).dataset.key as 'close' | 'fill' | 'tick';
+                    const checked = k === 'close';
+                    el.classList.toggle('is-checked', checked);
+                    const box = el.querySelector('.vst-checkbox');
+                    if (box) box.textContent = checked ? '✓' : '';
+                });
+                const resetBtn = panel.querySelector('.vst-drop-reset-btn');
+                resetBtn?.classList.remove('is-active');
             });
 
             panel.querySelectorAll('.vst-check-item').forEach((item) => {
@@ -2126,18 +2186,22 @@ export class StrategyTester {
                     } else {
                         this.selectedExecModes.push(key);
                     }
+                    const isChecked = this.selectedExecModes.includes(key);
+                    item.classList.toggle('is-checked', isChecked);
+                    const box = item.querySelector('.vst-checkbox');
+                    if (box) box.textContent = isChecked ? '✓' : '';
                     this.updateExecBadge();
-                    this.showScriptExecutionDropdown(anchorBtn);
+                    const resetBtn = panel.querySelector('.vst-drop-reset-btn');
+                    resetBtn?.classList.toggle('is-active', this.selectedExecModes.length !== 1 || !this.selectedExecModes.includes('close'));
                 });
             });
         }, 260);
     }
 
     private updateExecBadge(): void {
-        const badge = this.el.querySelector('.vst-exec-filter .vst-badge-num');
-        const digits = ['⓪', '❶', '❷', '❸', '❹'];
+        const badge = this.el.querySelector('.vst-exec-filter .vst-badge-circle');
         if (badge) {
-            badge.textContent = digits[this.selectedExecModes.length] ?? String(this.selectedExecModes.length);
+            badge.textContent = String(this.selectedExecModes.length);
         }
     }
 
@@ -2223,8 +2287,11 @@ export class StrategyTester {
                     const key = (item as HTMLElement).dataset.key as TradesColumnKey;
                     if (key) {
                         this.activeColumns[key] = !this.activeColumns[key];
+                        const isChecked = this.activeColumns[key];
+                        item.classList.toggle('is-checked', isChecked);
+                        const box = item.querySelector('.vst-checkbox');
+                        if (box) box.textContent = isChecked ? '✓' : '';
                         this.renderTradesTable();
-                        this.showTradesColumnPickerDropdown(anchorBtn);
                     }
                 });
             });
@@ -2402,6 +2469,7 @@ export class StrategyTester {
                 const d = new Date(t.exit?.time ?? t.entry.time);
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` || `Trade ${i + 1}`;
             });
+            this.cachedTimestamps = trades.map((t) => t.exit?.time ?? t.entry.time);
 
             let eq = 0;
             this.cachedCumPnl = [];
@@ -2464,6 +2532,7 @@ export class StrategyTester {
             const ref = generateReferenceData();
             this.cachedStats = ref.stats;
             this.cachedTimeline = ref.timeline;
+            this.cachedTimestamps = ref.timestamps;
             this.cachedCumPnl = ref.cumPnlData;
             this.cachedBuyHold = ref.buyHoldData;
             this.cachedTradeBars = ref.tradeBars;
@@ -2574,12 +2643,18 @@ export class StrategyTester {
                     this.hoveredTradeIdx = idx;
                     const rd = this.cachedRunupsDrawdowns[idx] || this.cachedRunupsDrawdowns.find((r) => idx >= r.entryIdx && idx <= r.exitIdx);
                     if (rd) {
+                        const targetX = this.showWhitespaces
+                            ? (this.cachedTrades[rd.entryIdx]?.entry.time ?? this.cachedTimestamps[rd.entryIdx] ?? rd.entryIdx)
+                            : rd.entryIdx;
+                        const targetEndX = this.showWhitespaces
+                            ? (this.cachedTrades[rd.exitIdx]?.exit?.time ?? this.cachedTimestamps[rd.exitIdx] ?? rd.exitIdx)
+                            : rd.exitIdx;
                         this.chartInstance.setOption({
                             series: [
                                 {
                                     name: 'Runups Guidelines',
                                     markLine: {
-                                        data: [{ xAxis: rd.entryIdx }, { xAxis: rd.exitIdx }],
+                                        data: [{ xAxis: targetX }, { xAxis: targetEndX }],
                                     },
                                 },
                             ],
@@ -2657,22 +2732,43 @@ export class StrategyTester {
             const cat = activeCategories[i]!;
             const isBottomGrid = i === gridCount - 1;
 
-            xAxis.push({
-                type: 'category',
-                gridIndex: cat.gridIndex,
-                data: timeline,
-                boundaryGap: cat.id === 'equity' ? false : true,
-                axisLine: { lineStyle: { color: '#2a2b30' } },
-                axisTick: { show: false },
-                axisLabel: {
-                    show: isBottomGrid,
-                    color: '#787b86',
-                    fontSize: 10.5,
-                    interval: Math.max(1, Math.floor(timeline.length / 12)),
-                    formatter: (val: string) => val.split('-')[0] || val,
-                },
-                splitLine: { show: false },
-            });
+            if (this.showWhitespaces) {
+                const minTime = this.cachedTimestamps.length > 0 ? this.cachedTimestamps[0] : undefined;
+                const maxTime = this.cachedTimestamps.length > 0 ? this.cachedTimestamps[this.cachedTimestamps.length - 1] : undefined;
+                xAxis.push({
+                    type: 'time',
+                    gridIndex: cat.gridIndex,
+                    min: minTime,
+                    max: maxTime,
+                    splitNumber: 15,
+                    axisLine: { lineStyle: { color: '#2a2b30' } },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        show: isBottomGrid,
+                        color: '#787b86',
+                        fontSize: 10.5,
+                        formatter: '{yyyy}',
+                    },
+                    splitLine: { show: false },
+                });
+            } else {
+                xAxis.push({
+                    type: 'category',
+                    gridIndex: cat.gridIndex,
+                    data: timeline,
+                    boundaryGap: cat.id === 'equity' ? false : true,
+                    axisLine: { lineStyle: { color: '#2a2b30' } },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        show: isBottomGrid,
+                        color: '#787b86',
+                        fontSize: 10.5,
+                        interval: Math.max(1, Math.floor(timeline.length / 12)),
+                        formatter: (val: string) => val.split('-')[0] || val,
+                    },
+                    splitLine: { show: false },
+                });
+            }
 
             if (cat.id === 'equity') {
                 yAxis.push({
@@ -2753,75 +2849,151 @@ export class StrategyTester {
         if (hasEquity) {
             const eqGrid = activeCategories.find((c) => c.id === 'equity')!.gridIndex;
             if (this.activeSeries.buyHold) {
-                series.push({
-                    name: 'Buy and hold',
-                    type: 'line',
-                    xAxisIndex: eqGrid,
-                    yAxisIndex: eqGrid,
-                    data: buyHold,
-                    smooth: 0.2,
-                    showSymbol: false,
-                    lineStyle: { color: '#2962ff', width: 1.8 },
-                    markPoint: {
-                        symbol: 'roundRect',
-                        symbolSize: [85, 20],
-                        data: [
-                            {
-                                coord: [buyHold.length - 1, lastBuyHold],
-                                value: formatNumber(lastBuyHold),
-                                itemStyle: { color: '#2962ff' },
-                                label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
-                            },
-                        ],
-                    },
-                });
+                if (this.showWhitespaces) {
+                    const buyHoldTimeData = this.cachedTimestamps.map((time, idx) => [time, buyHold[idx] ?? 0]);
+                    const lastTime = this.cachedTimestamps[this.cachedTimestamps.length - 1] ?? Date.now();
+                    series.push({
+                        name: 'Buy and hold',
+                        type: 'line',
+                        xAxisIndex: eqGrid,
+                        yAxisIndex: eqGrid,
+                        data: buyHoldTimeData,
+                        smooth: 0.2,
+                        showSymbol: false,
+                        lineStyle: { color: '#2962ff', width: 1.8 },
+                        markPoint: {
+                            symbol: 'roundRect',
+                            symbolSize: [85, 20],
+                            data: [
+                                {
+                                    coord: [lastTime, lastBuyHold],
+                                    value: formatNumber(lastBuyHold),
+                                    itemStyle: { color: '#2962ff' },
+                                    label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                                },
+                            ],
+                        },
+                    });
+                } else {
+                    series.push({
+                        name: 'Buy and hold',
+                        type: 'line',
+                        xAxisIndex: eqGrid,
+                        yAxisIndex: eqGrid,
+                        data: buyHold,
+                        smooth: 0.2,
+                        showSymbol: false,
+                        lineStyle: { color: '#2962ff', width: 1.8 },
+                        markPoint: {
+                            symbol: 'roundRect',
+                            symbolSize: [85, 20],
+                            data: [
+                                {
+                                    coord: [buyHold.length - 1, lastBuyHold],
+                                    value: formatNumber(lastBuyHold),
+                                    itemStyle: { color: '#2962ff' },
+                                    label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                                },
+                            ],
+                        },
+                    });
+                }
             }
 
             if (this.activeSeries.cumPnl) {
-                series.push({
-                    name: 'Cumulative PnL',
-                    type: 'line',
-                    xAxisIndex: eqGrid,
-                    yAxisIndex: eqGrid,
-                    data: cumPnl,
-                    smooth: 0.15,
-                    showSymbol: true,
-                    symbol: 'circle',
-                    symbolSize: 4.5,
-                    itemStyle: { color: '#00e676' },
-                    lineStyle: { color: '#00e676', width: 2 },
-                    areaStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: 'rgba(0, 230, 118, 0.15)' },
-                            { offset: 1, color: 'rgba(0, 230, 118, 0.0)' },
-                        ]),
-                    },
-                    markPoint: {
-                        symbol: 'roundRect',
-                        symbolSize: [75, 20],
-                        data: [
-                            {
-                                coord: [cumPnl.length - 1, lastCumPnl],
-                                value: formatSignedNumber(lastCumPnl),
-                                itemStyle: { color: '#089981' },
-                                label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                if (this.showWhitespaces) {
+                    const cumPnlPoints = this.cachedTimestamps.map((time, idx) => {
+                        const val = cumPnl[idx] ?? 0;
+                        return {
+                            value: [time, val],
+                            itemStyle: {
+                                color: idx === 0 ? '#ef5350' : '#089981',
+                                borderColor: idx === 0 ? '#ef5350' : '#089981',
                             },
-                        ],
-                    },
-                });
+                        };
+                    });
+                    const lastTime = this.cachedTimestamps[this.cachedTimestamps.length - 1] ?? Date.now();
+                    series.push({
+                        name: 'Cumulative PnL',
+                        type: 'line',
+                        xAxisIndex: eqGrid,
+                        yAxisIndex: eqGrid,
+                        data: cumPnlPoints,
+                        smooth: 0.1,
+                        showSymbol: true,
+                        symbol: 'circle',
+                        symbolSize: 4.5,
+                        itemStyle: { color: '#089981' },
+                        lineStyle: { color: '#089981', width: 2 },
+                        markPoint: {
+                            symbol: 'roundRect',
+                            symbolSize: [78, 20],
+                            data: [
+                                {
+                                    coord: [lastTime, lastCumPnl],
+                                    value: formatNumber(lastCumPnl, 2),
+                                    itemStyle: { color: '#00b49d' },
+                                    label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                                },
+                            ],
+                        },
+                    });
+                } else {
+                    series.push({
+                        name: 'Cumulative PnL',
+                        type: 'line',
+                        xAxisIndex: eqGrid,
+                        yAxisIndex: eqGrid,
+                        data: cumPnl,
+                        smooth: 0.15,
+                        showSymbol: true,
+                        symbol: 'circle',
+                        symbolSize: 4.5,
+                        itemStyle: { color: '#00e676' },
+                        lineStyle: { color: '#00e676', width: 2 },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(0, 230, 118, 0.15)' },
+                                { offset: 1, color: 'rgba(0, 230, 118, 0.0)' },
+                            ]),
+                        },
+                        markPoint: {
+                            symbol: 'roundRect',
+                            symbolSize: [75, 20],
+                            data: [
+                                {
+                                    coord: [cumPnl.length - 1, lastCumPnl],
+                                    value: formatSignedNumber(lastCumPnl),
+                                    itemStyle: { color: '#089981' },
+                                    label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
+                                },
+                            ],
+                        },
+                    });
+                }
             }
         }
 
         // 2. Trades excursions series (Image 4)
         if (hasExcursions) {
             const excGrid = activeCategories.find((c) => c.id === 'excursions')!.gridIndex;
+            const maeData = this.showWhitespaces
+                ? this.cachedMaeBars.map((b, idx) => ({ value: [this.cachedTimestamps[idx] ?? idx, b.value[1]], itemStyle: b.itemStyle }))
+                : this.cachedMaeBars;
+            const mfeData = this.showWhitespaces
+                ? this.cachedMfeBars.map((b, idx) => ({ value: [this.cachedTimestamps[idx] ?? idx, b.value[1]], itemStyle: b.itemStyle }))
+                : this.cachedMfeBars;
+            const realizedData = this.showWhitespaces
+                ? this.cachedRealizedBars.map((b, idx) => ({ value: [this.cachedTimestamps[idx] ?? idx, b.value[1]], itemStyle: b.itemStyle }))
+                : this.cachedRealizedBars;
+
             series.push(
                 {
                     name: 'MAE Excursions',
                     type: 'bar',
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
-                    data: this.cachedMaeBars,
+                    data: maeData,
                     barWidth: 4.5,
                     barGap: '-100%',
                     silent: true,
@@ -2831,7 +3003,7 @@ export class StrategyTester {
                     type: 'bar',
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
-                    data: this.cachedMfeBars,
+                    data: mfeData,
                     barWidth: 4.5,
                     barGap: '-100%',
                     silent: true,
@@ -2841,7 +3013,7 @@ export class StrategyTester {
                     type: 'bar',
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
-                    data: this.cachedRealizedBars,
+                    data: realizedData,
                     barWidth: 4.5,
                     barGap: '-100%',
                     silent: false,
@@ -2858,23 +3030,31 @@ export class StrategyTester {
         // 3. Run-ups and drawdowns series (Image 5)
         if (hasDrawdowns) {
             const rdGrid = activeCategories.find((c) => c.id === 'drawdowns')!.gridIndex;
+            const rdData = this.showWhitespaces
+                ? this.cachedRunupsDrawdowns.map((r, i) => {
+                      const entryTime = this.cachedTrades[r.entryIdx]?.entry.time ?? this.cachedTimestamps[r.entryIdx] ?? 0;
+                      const exitTime = this.cachedTrades[r.exitIdx]?.exit?.time ?? this.cachedTimestamps[r.exitIdx] ?? 0;
+                      return [entryTime, exitTime, r.pnl, i, r.val, r.pct];
+                  })
+                : this.cachedRunupsDrawdowns.map((r, i) => [r.entryIdx, r.exitIdx, r.pnl, i, r.val, r.pct]);
+
             series.push(
                 {
                     name: 'Run-ups and drawdowns',
                     type: 'custom',
                     xAxisIndex: rdGrid,
                     yAxisIndex: rdGrid,
-                    data: this.cachedRunupsDrawdowns.map((r, i) => [r.entryIdx, r.exitIdx, r.pnl, i, r.val, r.pct]),
+                    data: rdData,
                     renderItem: (
                         _params: echarts.CustomSeriesRenderItemParams,
                         api: echarts.CustomSeriesRenderItemAPI
                     ) => {
-                        const entryIdx = Number(api.value(0));
-                        const exitIdx = Number(api.value(1));
+                        const startVal = Number(api.value(0));
+                        const endVal = Number(api.value(1));
                         const pnl = Number(api.value(2));
                         const yVal = gridCount === 1 ? -0.038 : 0;
-                        const start = api.coord([entryIdx, yVal]) as [number, number];
-                        const end = api.coord([exitIdx, yVal]) as [number, number];
+                        const start = api.coord([startVal, yVal]) as [number, number];
+                        const end = api.coord([endVal, yVal]) as [number, number];
                         const x = Math.min(start[0], end[0]);
                         const w = Math.max(4, Math.abs(end[0] - start[0]));
                         return {
@@ -2943,7 +3123,9 @@ export class StrategyTester {
                 formatter: (params) => {
                     if (!Array.isArray(params) || params.length === 0) return '';
                     const idx = params[0]?.dataIndex ?? 0;
-                    const date = timeline[idx] ?? '';
+                    const date = this.showWhitespaces && this.cachedTimestamps[idx]
+                        ? new Date(this.cachedTimestamps[idx]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                        : (timeline[idx] ?? '');
 
                     // If ONLY Run-ups and drawdowns is active (Image 5)
                     if (gridCount === 1 && hasDrawdowns) {
@@ -3064,7 +3246,7 @@ export class StrategyTester {
         if (cols.favorableExcursion) ths += '<th>Favorable excursion</th>';
         if (cols.adverseExcursion) ths += '<th>Adverse excursion</th>';
         if (cols.cumPnl) ths += '<th>Cumulative PnL</th>';
-        if (cols.duration) ths += '<th>Duration</th>';
+        if (cols.duration) ths += '<th>Duration (bars)</th>';
 
         let cumPnl = 0;
         let rows = '';
@@ -3103,15 +3285,15 @@ export class StrategyTester {
             <div class="vst-trades-header-bar">
                 <div class="vst-trades-header-title">List of trades</div>
                 <div class="vst-trades-header-actions">
-                    <button class="vst-icon-btn vst-trades-export-btn" title="Export CSV">
+                    <button class="vst-trades-action-btn vst-trades-export-btn" title="Export CSV">
                         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
                             <path d="M2.5 10v3.5h11V10M8 2v8.5M4.5 7.5L8 11l3.5-3.5"/>
                         </svg>
                     </button>
-                    <button class="vst-icon-btn vst-trades-cols-btn" title="Select columns">
-                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
-                            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
-                            <path d="M6 2v12M10 2v12"/>
+                    <button class="vst-trades-action-btn vst-trades-cols-btn" title="Select columns">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3">
+                            <rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/>
+                            <path d="M6.5 2.5v11M9.5 2.5v11"/>
                         </svg>
                     </button>
                 </div>
@@ -3133,6 +3315,9 @@ export class StrategyTester {
         });
 
         const colsBtn = this.tradesTableEl.querySelector('.vst-trades-cols-btn') as HTMLElement;
+        if (this.activeDropdownEl && this.activeDropdownEl.querySelector('.vst-check-item[data-key="dateTime"]')) {
+            colsBtn?.classList.add('is-active');
+        }
         colsBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.showTradesColumnPickerDropdown(colsBtn);
