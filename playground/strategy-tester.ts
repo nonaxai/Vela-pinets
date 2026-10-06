@@ -274,6 +274,7 @@ export class StrategyTester {
 
     // State
     private mode: 'hidden' | 'docked' | 'expanded' | 'maximized' = 'hidden';
+    private isChartExpanded = false;
     private currentHeight = 520;
     private activeHandle: IndicatorHandle | null = null;
     private currentView: 'chart' | 'table' = 'chart';
@@ -536,10 +537,10 @@ export class StrategyTester {
                             </span>
                         </div>
                         <div class="vst-perf-actions">
-                            <button class="vst-icon-btn vst-perf-reset-zoom" title="Reset zoom">
+                            <button class="vst-icon-btn vst-btn-scale-settings" title="Scale settings">
                                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/></svg>
                             </button>
-                            <button class="vst-icon-btn vst-btn-scale-settings" title="Scale settings">
+                            <button class="vst-icon-btn vst-btn-strat-settings" title="Strategy properties">
                                 <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></svg>
                             </button>
                             <button class="vst-icon-btn vst-perf-screenshot" title="Export image">
@@ -671,13 +672,27 @@ export class StrategyTester {
                 height: 100% !important;
                 z-index: 32;
             }
-            .vela-strategy-tester.is-maximized .vst-stats-card-container,
-            .vela-strategy-tester.is-maximized .vst-controls-bar,
-            .vela-strategy-tester.is-maximized .vst-analysis-section {
-                display: none;
+            .vela-strategy-tester.is-chart-expanded .vst-stats-card-container,
+            .vela-strategy-tester.is-chart-expanded .vst-controls-bar,
+            .vela-strategy-tester.is-chart-expanded .vst-analysis-section {
+                display: none !important;
             }
-            .vela-strategy-tester.is-maximized .vst-inline-stats-strip {
-                display: flex;
+            .vela-strategy-tester.is-chart-expanded .vst-inline-stats-strip {
+                display: flex !important;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-section {
+                flex: 1 1 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-content {
+                flex: 1 1 auto !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
+            .vst-perf-expand-chart.is-active {
+                background: #2a2e39 !important;
+                color: #ffffff !important;
             }
             .vst-inline-stats-strip {
                 display: none;
@@ -804,7 +819,8 @@ export class StrategyTester {
                 flex-direction: column;
                 height: 100%;
                 background: #151619;
-                overflow: hidden;
+                overflow-y: auto;
+                overflow-x: hidden;
             }
             .vela-strategy-tester.is-open .vst-drawer-body {
                 display: flex;
@@ -1608,13 +1624,13 @@ export class StrategyTester {
             }
         });
 
-        // Expand chart icon in performance header (Image 2)
+        // Expand chart icon in performance header (media_1791245268676.png)
         this.el.querySelector('.vst-perf-expand-chart')?.addEventListener('click', () => {
-            this.setMode(this.mode === 'maximized' ? 'expanded' : 'maximized');
+            this.toggleChartExpanded();
         });
 
-        // Reset zoom icon in performance header
-        this.el.querySelector('.vst-perf-reset-zoom')?.addEventListener('click', () => {
+        // Double click on chart container resets zoom
+        this.chartContainerEl.addEventListener('dblclick', () => {
             if (!this.chartInstance) return;
             this.chartInstance.dispatchAction({
                 type: 'dataZoom',
@@ -1680,8 +1696,8 @@ export class StrategyTester {
             });
         });
 
-        // Settings gear buttons (Chart indicator settings)
-        this.el.querySelectorAll('.vst-controls-bar .vst-btn-strat-settings').forEach((btn) => {
+        // Settings gear buttons (Chart indicator settings, including sun icon in perf header)
+        this.el.querySelectorAll('.vst-btn-strat-settings').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const chart = this.getActiveChart();
                 if (chart && 'renderer' in chart) {
@@ -2369,11 +2385,6 @@ export class StrategyTester {
         this.el.classList.remove('is-open', 'is-absolute', 'is-maximized');
         this.el.style.display = mode === 'hidden' ? 'none' : 'block';
 
-        const expandBtn = this.el.querySelector('.vst-perf-expand-chart');
-        if (expandBtn) {
-            expandBtn.setAttribute('title', mode === 'maximized' ? 'Restore chart' : 'Expand chart');
-        }
-
         if (mode === 'hidden') {
             return;
         }
@@ -2395,6 +2406,21 @@ export class StrategyTester {
                 this.chartInstance?.resize();
             }, 10);
         }
+    }
+
+    public toggleChartExpanded(): void {
+        this.isChartExpanded = !this.isChartExpanded;
+        this.el.classList.toggle('is-chart-expanded', this.isChartExpanded);
+
+        const expandBtn = this.el.querySelector('.vst-perf-expand-chart');
+        if (expandBtn) {
+            expandBtn.classList.toggle('is-active', this.isChartExpanded);
+            expandBtn.setAttribute('title', this.isChartExpanded ? 'Restore chart' : 'Expand chart');
+        }
+
+        setTimeout(() => {
+            this.chartInstance?.resize();
+        }, 10);
     }
 
     public getMode(): 'hidden' | 'docked' | 'expanded' | 'maximized' {
