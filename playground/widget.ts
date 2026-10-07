@@ -12,16 +12,19 @@ import {
     registerWidgetAction,
     registerIcon,
     registerSidePanel,
+    registerLegendAction,
     registerDefaultEngine,
     registerStatePersistence,
     type WidgetContext,
     type CellStateContext,
     type InputValue,
 } from '@luxalgo/vela/plugin';
-import { Dialog } from '@luxalgo/vela/ui';
 import { PineWorkerEngine } from '../src';
-import { mountPineEditor } from './pine-editor';
+import { mountPineEditor, scriptStore } from './pine-editor';
 import { StrategyTester } from './strategy-tester';
+import { CustomTimeframeManager } from './custom-timeframe';
+import { mountWatchlistPanel } from './watchlist-panel';
+import { ReplayManager } from './replay-bar';
 import type { IndicatorHandle, Vela } from '@luxalgo/vela';
 
 interface PersistedScriptItem {
@@ -116,6 +119,42 @@ window.Worker = class extends RealWorker {
     }
 };
 
+interface SessionSymbolInfo {
+    ticker: string;
+    tickerid?: string;
+    description?: string;
+    type?: string;
+    mintick?: number;
+    pricescale?: number;
+    timezone?: string;
+    session?: string;
+    [key: string]: unknown;
+}
+
+function wrapSessionProvider<T extends { getSymbolInfo?(ticker: string): Promise<SessionSymbolInfo | undefined> }>(p: T): T {
+    const orig = p.getSymbolInfo?.bind(p);
+    p.getSymbolInfo = async (ticker: string): Promise<SessionSymbolInfo> => {
+        const info = orig ? await orig(ticker).catch(() => undefined) : undefined;
+        if (info) {
+            return {
+                ...info,
+                session: '0930-1600:23456',
+            };
+        }
+        return {
+            ticker,
+            tickerid: ticker,
+            description: ticker,
+            type: 'crypto',
+            mintick: 0.01,
+            pricescale: 100,
+            timezone: 'Etc/UTC',
+            session: '0930-1600:23456',
+        };
+    };
+    return p;
+}
+
 const workspace = new VelaWorkspace('#chart', {
     layout: '1', // single chart from the first paint; the layout button opens multi-chart grids (up to 4x4)
     symbol: 'BTCUSDT', // bare = first declared provider (binance); or 'coinbase:BTC-USD', 'hyperliquid:BTC'
@@ -125,11 +164,11 @@ const workspace = new VelaWorkspace('#chart', {
     autofocus: true, // the chart IS the page — shortcuts work from the first keystroke
     defaultLanguage: 'pine',
 
-    // Multi-venue data feeds ready to query:
+    // Multi-venue data feeds ready to query (decorated with session metadata so RTH / ETH is available):
     providers: {
-        binance: () => new BinanceProvider(),
-        coinbase: () => new CoinbaseProvider(),
-        hyperliquid: () => new HyperliquidProvider(),
+        binance: () => wrapSessionProvider(new BinanceProvider()),
+        coinbase: () => wrapSessionProvider(new CoinbaseProvider()),
+        hyperliquid: () => wrapSessionProvider(new HyperliquidProvider()),
     },
 
     engines: { pine: () => new PineWorkerEngine() }, // Pine served off the main thread
@@ -153,7 +192,9 @@ const workspace = new VelaWorkspace('#chart', {
             enabled: true, // on from first paint — visible proof the addon plots through Vela
             script: `//@version=5
 indicator("EMA 20", overlay=true)
-plot(ta.ema(close, 20), color=color.orange, linewidth=2)`,
+len = input.int(20, title="Length")
+src = input.source(close, title="Source")
+plot(ta.ema(src, len), title="EMA", color=color.orange, linewidth=2)`,
         },
         {
             name: 'RSI 14',
@@ -225,13 +266,104 @@ if ta.crossover(fast, slow)
 if ta.crossunder(fast, slow)
     strategy.close("Long", comment="Sell")`,
         },
+        {
+            name: 'RSI Strategy',
+            enabled: false,
+            script: `//@version=5
+strategy("RSI Strategy", overlay=false, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+length = input.int(14, title="RSI Length")
+overbought = input.int(70, title="Overbought Level")
+oversold = input.int(30, title="Oversold Level")
+vrsi = ta.rsi(close, length)
+if (ta.crossover(vrsi, oversold))
+    strategy.entry("RSI Long", strategy.long)
+if (ta.crossunder(vrsi, overbought))
+    strategy.entry("RSI Short", strategy.short)
+plot(vrsi, title="RSI", color=color.purple, linewidth=2)
+h1 = hline(overbought, "Overbought", color=color.red, linestyle=hline.style_dashed)
+h2 = hline(oversold, "Oversold", color=color.green, linestyle=hline.style_dashed)`,
+        },
+        {
+            name: 'Bollinger Bands Strategy',
+            enabled: false,
+            script: `//@version=5
+strategy("Bollinger Bands Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+length = input.int(20, title="Length")
+mult = input.float(2.0, title="StdDev")
+[basis, upper, lower] = ta.bb(close, length, mult)
+if (ta.crossover(close, lower))
+    strategy.entry("BB Long", strategy.long)
+if (ta.crossunder(close, upper))
+    strategy.close("BB Long")
+plot(basis, color=color.orange, title="Basis")
+p1 = plot(upper, color=color.teal, title="Upper")
+p2 = plot(lower, color=color.teal, title="Lower")
+fill(p1, p2, color=color.rgb(0, 150, 136, 90))`,
+        },
     ],
+
+    // User's custom scripts ('My scripts') wired from Pine Editor
+    myScripts: () => {
+        return scriptStore.getScripts().map((s) => ({
+            id: s.id,
+            name: s.name,
+            script: s.content,
+            language: 'pine',
+            sourceType: 'myscripts' as const,
+            author: 'My scripts',
+            isStrategy: /^\s*strategy\s*\(/m.test(s.content) || /strategy/i.test(s.name),
+        }));
+    },
+    onAddScript: (script) => {
+        if (!script.script) return;
+        const activeCell = workspace.active;
+        if (activeCell) {
+            activeCell.addExternalIndicator({
+                name: script.name,
+                script: script.script,
+                language: script.language,
+            });
+            setTimeout(() => syncActiveStrategy(), 60);
+        }
+    },
 });
+
+// Fallback global helper for indicator picker
+(window as unknown as { __getVelaMyScripts: () => unknown[] }).__getVelaMyScripts = () => {
+    return scriptStore.getScripts().map((s) => ({
+        id: s.id,
+        name: s.name,
+        script: s.content,
+        language: 'pine',
+        sourceType: 'myscripts',
+        author: 'My scripts',
+        isStrategy: /^\s*strategy\s*\(/m.test(s.content) || /strategy/i.test(s.name),
+    }));
+};
 
 void workspace.cells()[0]?.chart.ready().then(() => console.log('[vela-pinets] chart ready — Pine served by the addon engine'));
 
 // Playground-only debug handle: expose the workspace for console poking.
 debugWin.workspace = workspace;
+const customTfManager = new CustomTimeframeManager(workspace);
+(debugWin as unknown as { customTfManager: CustomTimeframeManager }).customTfManager = customTfManager;
+const replayManager = new ReplayManager(workspace);
+(debugWin as unknown as { replayManager: ReplayManager }).replayManager = replayManager;
+
+// Ensure RTH / ETH toggle is displayed and interactive
+function ensureSessionControls(): void {
+    const sessionEls = document.querySelectorAll<HTMLElement>('.vela-topbar-session, .vela-bb-session');
+    sessionEls.forEach((sessionEl) => {
+        sessionEl.style.display = 'inline-flex';
+        const btns = sessionEl.querySelectorAll<HTMLButtonElement>('.vela-topbar-session-btn, .vela-bb-session-btn');
+        btns.forEach((b) => {
+            b.disabled = false;
+        });
+    });
+}
+setTimeout(ensureSessionControls, 100);
+setTimeout(ensureSessionControls, 500);
+setTimeout(ensureSessionControls, 1500);
 
 // ── Icons registration ──
 registerIcon(
@@ -242,6 +374,10 @@ registerIcon(
     'cloud-save',
     '<svg viewBox="0 0 16 16" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13.5h7a3.5 3.5 0 0 0 1.5-6.66A4.5 4.5 0 0 0 4.5 6.5a3 3 0 0 0 0 7z"/><path d="M8 8.5v4M6.5 10l1.5-1.5 1.5 1.5"/></svg>',
 );
+registerIcon(
+    'watchlist',
+    '<svg viewBox="0 0 16 16" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5h9a1 1 0 0 1 1 1v11l-4.5-2.5-4.5 2.5v-11a1 1 0 0 1 1-1z"/><path d="M5.5 5.5h5M5.5 8h3"/></svg>',
+);
 
 // ── "Replay" topbar entry — Bar Replay across the workspace ──
 registerWidgetAction({
@@ -251,98 +387,25 @@ registerWidgetAction({
     icon: 'replay',
     order: 5,
     align: 'left',
-    run: (ctx) => {
-        void (async (): Promise<void> => {
-            const wsCtx = ctx as WidgetContext & {
-                replay?: {
-                    state: { active: boolean };
-                    start(opts: { from: number }): Promise<void>;
-                    play(ms?: number): void;
-                    stop(): void;
-                };
-            };
-            const replay = wsCtx.replay;
-            if (!replay) return;
-            if (replay.state.active) {
-                replay.stop();
-                ctx.toast('Replay stopped — live stream restored', 'info');
-            } else {
-                const bounds = ctx.chart.replay.bounds;
-                if (!bounds || bounds.last <= bounds.first) {
-                    ctx.toast('Not enough history to replay', 'error');
-                    return;
-                }
-                // Rewind to roughly the last 15% of loaded history
-                const span = bounds.last - bounds.first;
-                const from = Math.max(bounds.first, bounds.last - Math.max(span * 0.15, 60_000));
-                await replay.start({ from });
-                replay.play(800);
-                ctx.toast('Replay started. Click Replay again to exit.', 'info');
-            }
+    run: () => {
+        replayManager.toggleReplay();
+    },
+});
+
+// ── Indicator Legend "<>" Code action: opens script in Pine Scripts tab ──
+registerLegendAction({
+    id: 'pinets.source',
+    icon: 'code',
+    tooltip: 'Source code',
+    order: -5,
+    when: (ind) => Boolean(ind.source || scriptStore.getScripts().some((s) => s.name.toLowerCase() === ind.title.toLowerCase())),
+    run: (ctx, ind) => {
+        void (async () => {
+            await scriptStore.openOrLoadScript(ind.title, ind.source);
+            ctx.togglePanel('pinets.scripts', true);
         })();
     },
 });
-
-// ── "Code" topbar entry — paste arbitrary Pine and Run it on demand ──
-let codeDialog: Dialog | null = null;
-let codeArea: HTMLTextAreaElement | null = null;
-let codeStatus: HTMLElement | null = null;
-let codeRun: HTMLButtonElement | null = null;
-
-registerWidgetAction({
-    id: 'pinets.code',
-    target: 'topbar',
-    label: 'Code',
-    icon: 'code',
-    run: (ctx) => {
-        if (!codeDialog) {
-            codeArea = document.createElement('textarea');
-            codeArea.value = `//@version=5
-indicator("My RSI", overlay=false)
-plot(ta.rsi(close, 14), color=color.purple)`;
-            codeArea.spellcheck = false;
-            codeArea.style.cssText =
-                'width:560px;max-width:80vw;height:260px;resize:vertical;background:var(--vela-surface-overlay);color:var(--vela-fg);border:1px solid var(--vela-border-soft);border-radius:var(--vela-radius-md);padding:10px;font:12px/1.5 ui-monospace,Consolas,monospace;outline:none;';
-            // Ctrl/⌘+Enter runs without leaving the keyboard.
-            codeArea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault();
-                    codeRun?.click();
-                }
-            });
-            codeRun = document.createElement('button');
-            codeRun.textContent = 'Run';
-            codeRun.style.cssText =
-                'all:unset;margin-top:8px;padding:6px 18px;border-radius:var(--vela-radius-sm);background:var(--vela-accent);color:#0b0e14;font-weight:600;cursor:pointer;';
-            codeStatus = document.createElement('div');
-            codeStatus.style.cssText = 'margin-top:8px;min-height:1.3em;font-size:var(--vela-font-size-md);white-space:pre-wrap;';
-            codeDialog = new Dialog({
-                title: 'Run a Pine indicator',
-                host: ctx.host,
-                closeOnInteractOutside: true,
-                content: (body) => body.append(codeArea!, codeRun!, codeStatus!),
-            });
-        }
-        codeRun!.onclick = () => void runCode(ctx);
-        codeStatus!.textContent = '';
-        codeDialog.show();
-        setTimeout(() => codeArea?.focus(), 0);
-    },
-});
-
-async function runCode(ctx: WidgetContext): Promise<void> {
-    if (!codeArea || !codeStatus) return;
-    codeStatus.style.color = 'var(--vela-fg-muted)';
-    codeStatus.textContent = 'Running…';
-    const r = await ctx.chart.runIndicator(codeArea.value);
-    if (r.ok) {
-        codeStatus.style.color = 'var(--vela-accent)';
-        codeStatus.textContent = `✓ ${r.handle!.title || 'Indicator'} added to the chart`;
-    } else {
-        codeStatus.style.color = 'var(--vela-danger)';
-        codeStatus.textContent = `✗ ${r.error!.message}`;
-    }
-}
 
 // ── "Save" topbar entry — TradingView-style manual save & shortcut ──
 registerWidgetAction({
@@ -355,6 +418,19 @@ registerWidgetAction({
     run: (ctx) => {
         saveAllCharts(ctx);
     },
+});
+
+// ── "Watchlist" docked side panel ──
+registerSidePanel({
+    id: 'watchlist',
+    title: 'Watchlist',
+    icon: 'watchlist',
+    order: 5,
+    width: 320,
+    minWidth: 260,
+    maxWidth: 500,
+    resizable: true,
+    mount: (ctx, body, header) => mountWatchlistPanel(ctx, body, header),
 });
 
 // ── "Pine Scripts" docked side panel ──

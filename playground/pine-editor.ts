@@ -284,6 +284,26 @@ plot(ta.sma(close, 14), title="SMA 14", color=color.blue)
             } catch {}
         }
     }
+
+    async openOrLoadScript(title: string, content?: string): Promise<PineScriptItem> {
+        await this.load();
+        const cleanTitle = title.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        const matched = this.scripts.find(
+            (s) =>
+                s.name.toLowerCase() === title.toLowerCase() ||
+                s.name.toLowerCase() === cleanTitle.toLowerCase() ||
+                s.filename.toLowerCase() === `${title.toLowerCase()}.pine` ||
+                s.filename.toLowerCase() === `${cleanTitle.toLowerCase()}.pine` ||
+                (content && s.content.trim() === content.trim()),
+        );
+        if (matched) {
+            this.setActive(matched.id);
+            return matched;
+        }
+        const active = this.getActive();
+        if (active) return active;
+        return this.createScript(cleanTitle || 'Indicator', content);
+    }
 }
 
 export const scriptStore = new LocalScriptStore();

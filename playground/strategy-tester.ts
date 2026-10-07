@@ -367,6 +367,13 @@ export class StrategyTester {
     }> = [];
     private cachedTrades: StrategyTrade[] = [];
 
+    // Trades Table Filter & Sorting State
+    private tradesSortColumn: string = 'tradeNum';
+    private tradesSortDirection: 'asc' | 'desc' = 'asc';
+    private tradesSideFilter: 'all' | 'long' | 'short' = 'all';
+    private tradesOutcomeFilter: 'all' | 'win' | 'loss' = 'all';
+    private tradesSearchQuery: string = '';
+
     constructor(opts: StrategyTesterOptions) {
         this.host = opts.host;
         this.getActiveChart = opts.getActiveChart;
@@ -1312,6 +1319,91 @@ export class StrategyTester {
                 flex: none;
                 flex-shrink: 0;
             }
+            .vst-trades-header-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: none;
+            }
+            .vst-trades-badge {
+                font-size: 11px;
+                color: #868a96;
+                background: #141414;
+                padding: 2px 8px;
+                border-radius: 10px;
+                border: 1px solid #2e2e2e;
+                font-weight: 500;
+            }
+            .vst-trades-header-filters {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                margin: 0 16px;
+                min-width: 0;
+                overflow-x: auto;
+            }
+            .vst-filter-group {
+                display: inline-flex;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 4px;
+                padding: 2px;
+                gap: 2px;
+                flex-shrink: 0;
+            }
+            .vst-filter-pill {
+                all: unset;
+                font-size: 11px;
+                font-weight: 500;
+                padding: 2px 8px;
+                border-radius: 3px;
+                cursor: pointer;
+                color: #868a96;
+                transition: background 120ms ease, color 120ms ease;
+                white-space: nowrap;
+            }
+            .vst-filter-pill:hover {
+                color: #d1d4dc;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .vst-filter-pill.is-active {
+                background: #2a2e39;
+                color: #f0f3fa;
+                font-weight: 600;
+            }
+            .vst-search-box {
+                display: flex;
+                align-items: center;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 4px;
+                padding: 0 8px;
+                height: 24px;
+                gap: 6px;
+                color: #868a96;
+                flex-shrink: 0;
+            }
+            .vst-search-box:focus-within {
+                border-color: #2962ff;
+                color: #d1d4dc;
+            }
+            .vst-trades-search-input {
+                all: unset;
+                font-size: 11px;
+                color: #f0f3fa;
+                width: 120px;
+            }
+            .vst-search-clear {
+                all: unset;
+                cursor: pointer;
+                color: #868a96;
+                font-size: 10px;
+                padding: 0 2px;
+            }
+            .vst-search-clear:hover {
+                color: #f0f3fa;
+            }
             .vst-trades-table-wrapper {
                 flex: 1 1 0px;
                 overflow-y: auto;
@@ -1334,6 +1426,29 @@ export class StrategyTester {
                 font-weight: 550;
                 z-index: 2;
                 white-space: nowrap;
+            }
+            .vst-sortable-th {
+                cursor: pointer;
+                user-select: none;
+                transition: background 120ms ease, color 120ms ease;
+            }
+            .vst-sortable-th:hover {
+                background: #1e1e1e !important;
+                color: #f0f3fa !important;
+            }
+            .vst-sortable-th.is-sorted {
+                color: #2962ff !important;
+                background: #181818 !important;
+            }
+            .vst-sort-arrow {
+                display: inline-block;
+                margin-left: 5px;
+                font-size: 9px;
+                opacity: 0.4;
+            }
+            .vst-sortable-th.is-sorted .vst-sort-arrow {
+                opacity: 1;
+                color: #2962ff;
             }
             .vst-trades-table td {
                 padding: 8px 14px;
@@ -5041,14 +5156,14 @@ export class StrategyTester {
             grids.push({ left: 24, right: 74, top: 32, bottom: 28 });
         } else if (gridCount === 2) {
             grids.push(
-                { left: 24, right: 74, top: 32, height: '62%' },
-                { left: 24, right: 74, top: '74%', height: '18%' }
+                { left: 24, right: 74, top: 32, height: '80%' },
+                { left: 24, right: 74, top: '85%', height: '10%' }
             );
         } else {
             grids.push(
-                { left: 24, right: 74, top: 32, height: '44%' },
-                { left: 24, right: 74, top: '54%', height: '22%' },
-                { left: 24, right: 74, top: '81%', height: '12%' }
+                { left: 24, right: 74, top: 32, height: '78%' },
+                { left: 24, right: 74, top: '83%', height: '8%' },
+                { left: 24, right: 74, top: '92%', height: '4%' }
             );
         }
 
@@ -5134,7 +5249,7 @@ export class StrategyTester {
                         lineStyle: { color: 'rgba(255, 255, 255, 0.04)', type: 'dashed' },
                     },
                     axisLabel: {
-                        show: true,
+                        show: gridCount === 1,
                         color: '#787b86',
                         fontSize: 10.5,
                         formatter: (val: number) => {
@@ -5154,10 +5269,10 @@ export class StrategyTester {
                     axisLine: { show: false },
                     axisTick: { show: false },
                     splitLine: {
-                        lineStyle: { color: 'rgba(255, 255, 255, 0.04)', type: 'dashed' },
+                        show: false,
                     },
                     axisLabel: {
-                        show: true,
+                        show: gridCount === 1,
                         color: '#787b86',
                         fontSize: 10.5,
                         formatter: (val: number) => {
@@ -5318,7 +5433,7 @@ export class StrategyTester {
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
                     data: maeData,
-                    barWidth: 4.5,
+                    barWidth: 2.5,
                     barGap: '-100%',
                     silent: true,
                 },
@@ -5328,7 +5443,7 @@ export class StrategyTester {
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
                     data: mfeData,
-                    barWidth: 4.5,
+                    barWidth: 2.5,
                     barGap: '-100%',
                     silent: true,
                 },
@@ -5338,7 +5453,7 @@ export class StrategyTester {
                     xAxisIndex: excGrid,
                     yAxisIndex: excGrid,
                     data: realizedData,
-                    barWidth: 4.5,
+                    barWidth: 2.5,
                     barGap: '-100%',
                     silent: false,
                     markLine: {
@@ -5385,10 +5500,10 @@ export class StrategyTester {
                             type: 'rect',
                             shape: {
                                 x,
-                                y: start[1] - 2.5,
+                                y: start[1] - 2,
                                 width: w,
-                                height: 5,
-                                r: 1.5,
+                                height: 4,
+                                r: 1,
                             },
                             style: {
                                 fill: pnl >= 0 ? '#089981' : '#f23645',
@@ -5590,55 +5705,203 @@ export class StrategyTester {
         const trades = this.cachedTrades;
         const cols = this.activeColumns;
 
-        let ths = '<th>Trade #</th>';
-        if (cols.dateTime) ths += '<th>Date and time</th>';
-        if (cols.signal) ths += '<th>Signal</th>';
-        if (cols.price) ths += '<th>Price</th>';
-        if (cols.size) ths += '<th>Size</th>';
-        if (cols.netPnl) ths += '<th>Net PnL</th>';
-        if (cols.returnPct) ths += '<th>Return</th>';
-        if (cols.commission) ths += '<th>Commission</th>';
-        if (cols.favorableExcursion) ths += '<th>Favorable excursion</th>';
-        if (cols.adverseExcursion) ths += '<th>Adverse excursion</th>';
-        if (cols.cumPnl) ths += '<th>Cumulative PnL</th>';
-        if (cols.duration) ths += '<th>Duration (bars)</th>';
+        // 1. Build enriched items with historical cumPnl in chronological order
+        let rollingCumPnl = 0;
+        interface EnrichedTrade {
+            index: number;
+            tradeNumStr: string;
+            side: string;
+            price: number;
+            size: number;
+            pnl: number;
+            isProfit: boolean;
+            returnPct: number;
+            commission: number;
+            mfe: number;
+            mae: number;
+            cumPnl: number;
+            duration: number;
+            entryTime: number;
+            dateStr: string;
+            original: StrategyTrade;
+        }
 
-        let cumPnl = 0;
+        const enrichedTrades: EnrichedTrade[] = [];
+        for (let i = 0; i < trades.length; i++) {
+            const t = trades[i]!;
+            const pnl = t.pnl ?? 0;
+            rollingCumPnl += pnl;
+            const entryD = new Date(t.entry.time).toLocaleDateString();
+            const exitD = t.exit ? new Date(t.exit.time).toLocaleDateString() : '';
+            const dateStr = exitD ? `${entryD} — ${exitD}` : entryD;
+            const isProfit = pnl >= 0;
+            const returnPct = this.customCapitalAmount > 0 ? (pnl / this.customCapitalAmount) * 100 : 0;
+            const duration = (i * 3 + 2) % 18 + 1;
+
+            enrichedTrades.push({
+                index: i + 1,
+                tradeNumStr: `#${i + 1}`,
+                side: t.side,
+                price: t.entry.price,
+                size: 1,
+                pnl,
+                isProfit,
+                returnPct,
+                commission: 0,
+                mfe: t.maxRunup ?? 0,
+                mae: t.maxDrawdown ?? 0,
+                cumPnl: rollingCumPnl,
+                duration,
+                entryTime: t.entry.time,
+                dateStr,
+                original: t,
+            });
+        }
+
+        // 2. Filter trades
+        const query = this.tradesSearchQuery.trim().toLowerCase();
+        const filteredTrades = enrichedTrades.filter((t) => {
+            // Side filter
+            if (this.tradesSideFilter === 'long' && t.side !== 'long') return false;
+            if (this.tradesSideFilter === 'short' && t.side !== 'short') return false;
+            // Outcome filter
+            if (this.tradesOutcomeFilter === 'win' && !t.isProfit) return false;
+            if (this.tradesOutcomeFilter === 'loss' && t.isProfit) return false;
+            // Search filter
+            if (query) {
+                const matchNum = t.tradeNumStr.toLowerCase().includes(query) || String(t.index).includes(query);
+                const matchSide = t.side.toLowerCase().includes(query);
+                const matchDate = t.dateStr.toLowerCase().includes(query);
+                const matchPnl = formatSignedNumber(t.pnl).toLowerCase().includes(query);
+                const matchPrice = formatNumber(t.price).toLowerCase().includes(query);
+                if (!matchNum && !matchSide && !matchDate && !matchPnl && !matchPrice) return false;
+            }
+            return true;
+        });
+
+        // 3. Sort trades
+        const sortCol = this.tradesSortColumn;
+        const sortDir = this.tradesSortDirection;
+        filteredTrades.sort((a, b) => {
+            let res = 0;
+            switch (sortCol) {
+                case 'tradeNum':
+                    res = a.index - b.index;
+                    break;
+                case 'dateTime':
+                    res = a.entryTime - b.entryTime;
+                    break;
+                case 'signal':
+                    res = a.side.localeCompare(b.side);
+                    break;
+                case 'price':
+                    res = a.price - b.price;
+                    break;
+                case 'size':
+                    res = a.size - b.size;
+                    break;
+                case 'netPnl':
+                    res = a.pnl - b.pnl;
+                    break;
+                case 'returnPct':
+                    res = a.returnPct - b.returnPct;
+                    break;
+                case 'commission':
+                    res = a.commission - b.commission;
+                    break;
+                case 'favorableExcursion':
+                    res = a.mfe - b.mfe;
+                    break;
+                case 'adverseExcursion':
+                    res = a.mae - b.mae;
+                    break;
+                case 'cumPnl':
+                    res = a.cumPnl - b.cumPnl;
+                    break;
+                case 'duration':
+                    res = a.duration - b.duration;
+                    break;
+                default:
+                    res = a.index - b.index;
+            }
+            return sortDir === 'asc' ? res : -res;
+        });
+
+        // 4. Build table headers with sort markers
+        const makeTh = (colKey: string, label: string) => {
+            const isSorted = this.tradesSortColumn === colKey;
+            const arrow = isSorted ? (this.tradesSortDirection === 'asc' ? '▲' : '▼') : '↕';
+            return `<th class="vst-sortable-th ${isSorted ? 'is-sorted' : ''}" data-col="${colKey}" title="Click to sort by ${label}">
+                <span>${label}</span>
+                <span class="vst-sort-arrow">${arrow}</span>
+            </th>`;
+        };
+
+        let ths = makeTh('tradeNum', 'Trade #');
+        if (cols.dateTime) ths += makeTh('dateTime', 'Date and time');
+        if (cols.signal) ths += makeTh('signal', 'Signal');
+        if (cols.price) ths += makeTh('price', 'Price');
+        if (cols.size) ths += makeTh('size', 'Size');
+        if (cols.netPnl) ths += makeTh('netPnl', 'Net PnL');
+        if (cols.returnPct) ths += makeTh('returnPct', 'Return');
+        if (cols.commission) ths += makeTh('commission', 'Commission');
+        if (cols.favorableExcursion) ths += makeTh('favorableExcursion', 'Favorable excursion');
+        if (cols.adverseExcursion) ths += makeTh('adverseExcursion', 'Adverse excursion');
+        if (cols.cumPnl) ths += makeTh('cumPnl', 'Cumulative PnL');
+        if (cols.duration) ths += makeTh('duration', 'Duration (bars)');
+
+        // 5. Build table rows
         let rows = '';
-
-        if (trades.length === 0) {
-            rows = `<tr><td colspan="12" style="text-align:center;padding:24px;color:#787b86;">No trades recorded yet.</td></tr>`;
+        if (filteredTrades.length === 0) {
+            const msg = trades.length === 0 ? 'No trades recorded yet.' : 'No trades match the current filter criteria.';
+            rows = `<tr><td colspan="12" style="text-align:center;padding:24px;color:#787b86;">${msg}</td></tr>`;
         } else {
-            for (let i = 0; i < trades.length; i++) {
-                const t = trades[i]!;
-                const pnl = t.pnl ?? 0;
-                cumPnl += pnl;
-                const entryD = new Date(t.entry.time).toLocaleDateString();
-                const exitD = t.exit ? new Date(t.exit.time).toLocaleDateString() : '';
-                const dateStr = exitD ? `${entryD} — ${exitD}` : entryD;
-                const isProfit = pnl >= 0;
-                const returnPct = this.customCapitalAmount > 0 ? (pnl / this.customCapitalAmount) * 100 : 0;
-
-                let tds = `<td>#${i + 1}</td>`;
-                if (cols.dateTime) tds += `<td>${dateStr}</td>`;
+            for (const t of filteredTrades) {
+                let tds = `<td>${t.tradeNumStr}</td>`;
+                if (cols.dateTime) tds += `<td>${t.dateStr}</td>`;
                 if (cols.signal) tds += `<td style="font-weight:600;color:${t.side === 'long' ? '#089981' : '#2962ff'}">${t.side.toUpperCase()}</td>`;
-                if (cols.price) tds += `<td>${formatNumber(t.entry.price)}</td>`;
-                if (cols.size) tds += `<td>1</td>`;
-                if (cols.netPnl) tds += `<td style="font-weight:700;color:${isProfit ? '#089981' : '#f23645'}">${formatSignedNumber(pnl)}</td>`;
-                if (cols.returnPct) tds += `<td style="font-weight:600;color:${isProfit ? '#089981' : '#f23645'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</td>`;
+                if (cols.price) tds += `<td>${formatNumber(t.price)}</td>`;
+                if (cols.size) tds += `<td>${t.size}</td>`;
+                if (cols.netPnl) tds += `<td style="font-weight:700;color:${t.isProfit ? '#089981' : '#f23645'}">${formatSignedNumber(t.pnl)}</td>`;
+                if (cols.returnPct) tds += `<td style="font-weight:600;color:${t.isProfit ? '#089981' : '#f23645'}">${t.returnPct >= 0 ? '+' : ''}${t.returnPct.toFixed(2)}%</td>`;
                 if (cols.commission) tds += `<td>0.00</td>`;
-                if (cols.favorableExcursion) tds += `<td style="color:#089981;">${t.maxRunup !== undefined ? `+${formatNumber(t.maxRunup)}` : '—'}</td>`;
-                if (cols.adverseExcursion) tds += `<td style="color:#f23645;">${t.maxDrawdown !== undefined ? `-${formatNumber(t.maxDrawdown)}` : '—'}</td>`;
-                if (cols.cumPnl) tds += `<td style="font-weight:700;color:${cumPnl >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(cumPnl)}</td>`;
-                if (cols.duration) tds += `<td>${(i * 3 + 2) % 18 + 1} bars</td>`;
+                if (cols.favorableExcursion) tds += `<td style="color:#089981;">${t.mfe > 0 ? `+${formatNumber(t.mfe)}` : '—'}</td>`;
+                if (cols.adverseExcursion) tds += `<td style="color:#f23645;">${t.mae > 0 ? `-${formatNumber(t.mae)}` : '—'}</td>`;
+                if (cols.cumPnl) tds += `<td style="font-weight:700;color:${t.cumPnl >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(t.cumPnl)}</td>`;
+                if (cols.duration) tds += `<td>${t.duration} bars</td>`;
 
                 rows += `<tr>${tds}</tr>`;
             }
         }
 
+        const countBadgeText = `${filteredTrades.length} of ${trades.length} trades`;
+
         this.tradesTableEl.innerHTML = `
             <div class="vst-trades-header-bar">
-                <div class="vst-trades-header-title">List of trades</div>
+                <div class="vst-trades-header-left">
+                    <div class="vst-trades-header-title">List of trades</div>
+                    <span class="vst-trades-badge">${countBadgeText}</span>
+                </div>
+                <div class="vst-trades-header-filters">
+                    <!-- Side Filter -->
+                    <div class="vst-filter-group" title="Filter by trade side">
+                        <button class="vst-filter-pill ${this.tradesSideFilter === 'all' ? 'is-active' : ''}" data-side="all">All</button>
+                        <button class="vst-filter-pill ${this.tradesSideFilter === 'long' ? 'is-active' : ''}" data-side="long">Long</button>
+                        <button class="vst-filter-pill ${this.tradesSideFilter === 'short' ? 'is-active' : ''}" data-side="short">Short</button>
+                    </div>
+                    <!-- Outcome Filter -->
+                    <div class="vst-filter-group" title="Filter by outcome">
+                        <button class="vst-filter-pill ${this.tradesOutcomeFilter === 'all' ? 'is-active' : ''}" data-outcome="all">All</button>
+                        <button class="vst-filter-pill ${this.tradesOutcomeFilter === 'win' ? 'is-active' : ''}" data-outcome="win">Wins</button>
+                        <button class="vst-filter-pill ${this.tradesOutcomeFilter === 'loss' ? 'is-active' : ''}" data-outcome="loss">Losses</button>
+                    </div>
+                    <!-- Search Input -->
+                    <div class="vst-search-box">
+                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+                        <input type="text" class="vst-trades-search-input" placeholder="Search trades..." value="${this.tradesSearchQuery.replace(/"/g, '&quot;')}" />
+                        ${this.tradesSearchQuery ? `<button class="vst-search-clear" title="Clear search">✕</button>` : ''}
+                    </div>
+                </div>
                 <div class="vst-trades-header-actions">
                     <button class="vst-trades-action-btn vst-trades-export-btn" title="Export CSV">
                         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -5666,6 +5929,65 @@ export class StrategyTester {
                 </table>
             </div>
         `;
+
+        // Attach Sort Listeners
+        this.tradesTableEl.querySelectorAll<HTMLElement>('.vst-sortable-th').forEach((th) => {
+            th.addEventListener('click', () => {
+                const colKey = th.dataset.col;
+                if (!colKey) return;
+                if (this.tradesSortColumn === colKey) {
+                    this.tradesSortDirection = this.tradesSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.tradesSortColumn = colKey;
+                    this.tradesSortDirection = colKey === 'netPnl' || colKey === 'returnPct' || colKey === 'cumPnl' ? 'desc' : 'asc';
+                }
+                this.renderTradesTable();
+            });
+        });
+
+        // Attach Side Filter Listeners
+        this.tradesTableEl.querySelectorAll<HTMLElement>('.vst-filter-pill[data-side]').forEach((pill) => {
+            pill.addEventListener('click', () => {
+                const side = pill.dataset.side as 'all' | 'long' | 'short';
+                if (side && this.tradesSideFilter !== side) {
+                    this.tradesSideFilter = side;
+                    this.renderTradesTable();
+                }
+            });
+        });
+
+        // Attach Outcome Filter Listeners
+        this.tradesTableEl.querySelectorAll<HTMLElement>('.vst-filter-pill[data-outcome]').forEach((pill) => {
+            pill.addEventListener('click', () => {
+                const outcome = pill.dataset.outcome as 'all' | 'win' | 'loss';
+                if (outcome && this.tradesOutcomeFilter !== outcome) {
+                    this.tradesOutcomeFilter = outcome;
+                    this.renderTradesTable();
+                }
+            });
+        });
+
+        // Attach Search Listeners
+        const searchInput = this.tradesTableEl.querySelector<HTMLInputElement>('.vst-trades-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                this.tradesSearchQuery = searchInput.value;
+                this.renderTradesTable();
+                const newSearch = this.tradesTableEl.querySelector<HTMLInputElement>('.vst-trades-search-input');
+                if (newSearch) {
+                    newSearch.focus();
+                    newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
+                }
+            });
+        }
+
+        const clearBtn = this.tradesTableEl.querySelector('.vst-search-clear');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.tradesSearchQuery = '';
+                this.renderTradesTable();
+            });
+        }
 
         this.tradesTableEl.querySelector('.vst-trades-export-btn')?.addEventListener('click', () => {
             this.exportTradesToCsv();
