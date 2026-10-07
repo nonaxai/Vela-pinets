@@ -509,19 +509,18 @@ export class ReplayManager {
     top: 56px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(19, 23, 34, 0.94);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--vela-border, #2a2e39);
-    color: var(--vela-fg-bright, #f0f3fa);
+    background: #1e222d;
+    border: 1px solid #363c4e;
+    color: #f0f3fa;
     padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
+    border-radius: 6px;
+    font-size: 12.5px;
     font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     z-index: 10000;
     pointer-events: auto;
     animation: velaFadeIn 150ms ease;
@@ -529,16 +528,19 @@ export class ReplayManager {
 .vela-replay-hint-close {
     all: unset;
     cursor: pointer;
-    color: var(--vela-fg-muted, #787b86);
-    font-size: 13px;
+    color: #787b86;
+    font-size: 12px;
     line-height: 1;
     padding: 2px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 3px;
+    transition: color 100ms ease, background 100ms ease;
 }
 .vela-replay-hint-close:hover {
-    color: var(--vela-fg-bright, #f0f3fa);
+    color: #f0f3fa;
+    background: #2a2e39;
 }
 
 .vela-replay-bar {
@@ -548,17 +550,16 @@ export class ReplayManager {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    background: rgba(19, 23, 34, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--vela-border, #2a2e39);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    gap: 4px;
+    padding: 4px 6px;
+    background: #1e222d;
+    border: 1px solid #363c4e;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     z-index: 998;
-    color: var(--vela-fg, #d1d4dc);
-    font-size: 13px;
+    color: #d1d4dc;
+    font-size: 12.5px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
     user-select: none;
     transition: opacity 120ms ease;
 }
@@ -572,12 +573,12 @@ export class ReplayManager {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 3px;
-    color: var(--vela-fg-muted, #787b86);
+    padding: 6px 4px;
+    color: #787b86;
     transition: color 120ms ease;
 }
 .vela-rb-handle:hover {
-    color: var(--vela-fg-bright, #f0f3fa);
+    color: #f0f3fa;
 }
 
 .vela-rb-btn {
@@ -588,23 +589,37 @@ export class ReplayManager {
     justify-content: center;
     gap: 6px;
     height: 28px;
-    padding: 0 7px;
-    border-radius: 5px;
-    font-size: 13px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 12px;
     font-weight: 500;
-    color: var(--vela-fg, #d1d4dc);
+    color: #d1d4dc;
+    background: transparent;
     transition: background 100ms ease, color 100ms ease;
+    box-sizing: border-box;
 }
 .vela-rb-btn:hover {
-    background: var(--vela-hover, rgba(255, 255, 255, 0.08));
-    color: var(--vela-fg-bright, #f0f3fa);
+    background: #2a2e39;
+    color: #ffffff;
 }
 .vela-rb-startbar-btn {
     padding: 0 8px;
+    gap: 5px;
 }
 .vela-rb-speed-btn {
     gap: 4px;
+    height: 24px;
     padding: 0 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #363c4e;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #d1d4dc;
+}
+.vela-rb-speed-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
 }
 .vela-rb-pin-btn.is-pinned {
     color: #2962ff;
@@ -613,48 +628,54 @@ export class ReplayManager {
 .vela-rb-divider {
     width: 1px;
     height: 16px;
-    background: var(--vela-border, #2a2e39);
-    margin: 0 2px;
+    background: #2a2e39;
+    margin: 0 3px;
+    flex-shrink: 0;
 }
 
 .vela-rb-readout-time {
     padding: 0 6px;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 500;
-    color: var(--vela-fg-bright, #f0f3fa);
+    color: #d1d4dc;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 .vela-rb-readout-bars {
     padding: 0 6px;
-    font-size: 12px;
-    color: var(--vela-fg-muted, #787b86);
+    font-size: 11.5px;
+    color: #787b86;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .vela-rb-speed-menu {
-    background: var(--vela-surface-elev, #1e222d);
-    border: 1px solid var(--vela-border, #2a2e39);
+    background: #1e222d;
+    border: 1px solid #363c4e;
     border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    padding: 4px 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 4px;
     z-index: 1001;
-    min-width: 80px;
+    min-width: 84px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
     animation: velaFadeIn 100ms ease;
 }
 .vela-rb-speed-item {
-    padding: 6px 14px;
-    font-size: 12.5px;
+    padding: 6px 12px;
+    font-size: 12px;
     cursor: pointer;
-    color: var(--vela-fg, #d1d4dc);
+    border-radius: 4px;
+    color: #d1d4dc;
     transition: background 100ms ease, color 100ms ease;
 }
 .vela-rb-speed-item:hover {
-    background: var(--vela-hover, rgba(255, 255, 255, 0.08));
-    color: var(--vela-fg-bright, #f0f3fa);
+    background: #2a2e39;
+    color: #ffffff;
 }
 .vela-rb-speed-item.is-active {
     color: #2962ff;
     font-weight: 600;
+    background: rgba(41, 98, 255, 0.12);
 }
 
 @keyframes velaFadeIn {

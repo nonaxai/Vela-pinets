@@ -426,6 +426,10 @@ const workspace = new VelaWorkspace('#chart', {
 
     engines: { pine: () => new PineWorkerEngine() }, // Pine served off the main thread
 
+    topbar: {
+        right: ['pinets.save', 'session', 'alerts', 'settings', 'screenshot', 'panels'],
+    },
+
     // ── Full Vela Shell & Workspace Features ──
     drawings: true, // user drawings (70+ tools: trendlines, fibs, pitchforks, rects, text…)
     drawingToolbar: true, // shared floating drawing toolbar on the left for the active cell
@@ -982,6 +986,34 @@ function initSaveTooltip(): void {
 
     const styleEl = document.createElement('style');
     styleEl.textContent = `
+        .vela-widget-action {
+            all: unset;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 26px;
+            padding: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #363c4e;
+            color: #d1d4dc;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+            transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .vela-widget-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+        .vela-widget-action:active {
+            background: rgba(255, 255, 255, 0.15);
+        }
         .vst-save-tooltip {
             position: fixed;
             z-index: 999999;

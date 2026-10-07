@@ -243,7 +243,7 @@ export class CustomTimeframeManager {
                 position: absolute;
                 z-index: 10000;
                 background: #1e222d;
-                border: 1px solid #2a2e39;
+                border: 1px solid #363c4e;
                 border-radius: 6px;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
                 width: 250px;
@@ -279,7 +279,7 @@ export class CustomTimeframeManager {
                 font-size: 10px;
                 font-weight: 700;
                 text-transform: uppercase;
-                letter-spacing: 0.6px;
+                letter-spacing: 0.8px;
                 color: #787b86;
             }
             .vtf-row {
@@ -289,12 +289,14 @@ export class CustomTimeframeManager {
                 cursor: pointer;
                 transition: background 100ms ease;
                 gap: 8px;
+                color: #d1d4dc;
             }
             .vtf-row:hover {
                 background: #2a2e39;
+                color: #f0f3fa;
             }
             .vtf-row.is-active {
-                background: #2a2e39;
+                background: rgba(41, 98, 255, 0.12);
                 color: #2962ff;
                 font-weight: 600;
             }
@@ -352,16 +354,16 @@ export class CustomTimeframeManager {
             .vtf-footer {
                 border-top: 1px solid #2a2e39;
                 padding: 10px 12px;
-                background: #181a20;
+                background: #131722;
                 flex-shrink: 0;
             }
             .vtf-add-title {
-                font-size: 11px;
-                font-weight: 600;
+                font-size: 10px;
+                font-weight: 700;
                 color: #787b86;
                 margin-bottom: 6px;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.8px;
             }
             .vtf-add-form {
                 display: flex;
@@ -370,7 +372,7 @@ export class CustomTimeframeManager {
             }
             .vtf-input-num {
                 width: 48px;
-                background: #131722;
+                background: #1e222d;
                 border: 1px solid #2a2e39;
                 border-radius: 4px;
                 color: #f0f3fa;
@@ -383,7 +385,7 @@ export class CustomTimeframeManager {
             }
             .vtf-select-unit {
                 flex: 1;
-                background: #131722;
+                background: #1e222d;
                 border: 1px solid #2a2e39;
                 border-radius: 4px;
                 color: #f0f3fa;
@@ -395,9 +397,9 @@ export class CustomTimeframeManager {
                 all: unset;
                 background: #2962ff;
                 color: #ffffff;
-                font-size: 11px;
-                font-weight: 600;
-                padding: 5px 10px;
+                font-size: 12px;
+                font-weight: 500;
+                padding: 4px 10px;
                 border-radius: 4px;
                 cursor: pointer;
                 transition: background 120ms ease;
@@ -415,6 +417,7 @@ export class CustomTimeframeManager {
                 color: #787b86;
                 cursor: pointer;
                 padding: 6px 0;
+                background: #131722;
                 border-top: 1px solid #2a2e39;
                 transition: color 120ms ease;
             }

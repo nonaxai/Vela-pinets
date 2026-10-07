@@ -1248,13 +1248,13 @@ export class StrategyTester {
 
             /* Tooltip card for Run-ups and drawdowns (Image 5) */
             .vst-rd-card {
-                background: #141414;
-                border: 1px solid #383838;
-                border-radius: 5px;
+                background: #1e222d;
+                border: 1px solid #363c4e;
+                border-radius: 6px;
                 padding: 8px 12px;
                 color: #d1d4dc;
                 font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, sans-serif;
-                font-size: 11.5px;
+                font-size: 12px;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.45);
                 min-width: 170px;
             }
@@ -1273,10 +1273,10 @@ export class StrategyTester {
                 margin-top: 2px;
             }
             .vst-rd-row3 {
-                margin-top: 8px;
+                margin-top: 6px;
                 color: #787b86;
-                font-size: 10.5px;
-                border-top: 1px solid #282a30;
+                font-size: 11px;
+                border-top: 1px solid #2a2e39;
                 padding-top: 4px;
             }
 
@@ -1607,8 +1607,9 @@ export class StrategyTester {
                 opacity: 0;
                 transform: translateY(4px);
                 transition: opacity 0.1s ease, transform 0.1s ease;
-                background: #3d3d3d;
-                border-radius: 4px;
+                background: #1e222d;
+                border: 1px solid #363c4e;
+                border-radius: 6px;
                 padding: 8px 12px;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
                 min-width: 195px;
@@ -1664,7 +1665,7 @@ export class StrategyTester {
                 height: 0;
                 border-left: 5px solid transparent;
                 border-right: 5px solid transparent;
-                border-top: 5px solid #3d3d3d;
+                border-top: 5px solid #1e222d;
             }
             .vst-breakdown-list {
                 display: flex;
@@ -3925,9 +3926,14 @@ export class StrategyTester {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
                 backgroundColor: '#1e222d',
-                borderColor: '#383838',
+                borderColor: '#363c4e',
                 borderWidth: 1,
-                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                padding: [8, 12],
+                textStyle: {
+                    color: '#d1d4dc',
+                    fontSize: 12,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                },
                 formatter: (params: unknown) => {
                     const pList = params as Array<{ seriesName: string; value: number; color: string }>;
                     if (!pList || pList.length === 0) return '';
@@ -4133,9 +4139,14 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 backgroundColor: '#1e222d',
-                borderColor: '#383838',
+                borderColor: '#363c4e',
                 borderWidth: 1,
-                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                padding: [8, 12],
+                textStyle: {
+                    color: '#d1d4dc',
+                    fontSize: 12,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                },
                 formatter: (params: unknown) => {
                     const pList = params as Array<{ seriesName: string; value: number; color: string }>;
                     if (!pList || pList.length === 0) return '';
@@ -4489,11 +4500,15 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#1e1e1e',
-                borderColor: '#383838',
+                backgroundColor: '#1e222d',
+                borderColor: '#363c4e',
                 borderWidth: 1,
                 padding: [8, 12],
-                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                textStyle: {
+                    color: '#d1d4dc',
+                    fontSize: 12,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                },
                 formatter: (params: unknown) => {
                     const pList = params as Array<{ data: { meta: GdPeriod } }>;
                     const item = pList[0]?.data?.meta;
@@ -4785,11 +4800,15 @@ export class StrategyTester {
                 },
                 tooltip: {
                     trigger: 'item',
-                    backgroundColor: '#1e1e1e',
-                    borderColor: '#383838',
+                    backgroundColor: '#1e222d',
+                    borderColor: '#363c4e',
                     borderWidth: 1,
                     padding: [8, 12],
-                    textStyle: { color: '#d1d4dc', fontSize: 12 },
+                    textStyle: {
+                        color: '#d1d4dc',
+                        fontSize: 12,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                    },
                     formatter: (params: unknown) => {
                         const p = params as { data?: { meta?: typeof bins[0] } };
                         const item = p?.data?.meta;
@@ -4840,11 +4859,13 @@ export class StrategyTester {
                                     xAxis: 4,
                                     lineStyle: { color: '#f23645' },
                                     label: { show: false },
+                                    tooltip: { show: false },
                                 },
                                 {
                                     xAxis: 7,
                                     lineStyle: { color: '#089981' },
                                     label: { show: false },
+                                    tooltip: { show: false },
                                 },
                             ],
                         },
@@ -4862,10 +4883,15 @@ export class StrategyTester {
                 animation: false,
                 tooltip: {
                     trigger: 'item',
-                    backgroundColor: '#1e1e1e',
-                    borderColor: '#383838',
+                    backgroundColor: '#1e222d',
+                    borderColor: '#363c4e',
                     borderWidth: 1,
-                    textStyle: { color: '#d1d4dc', fontSize: 12 },
+                    padding: [8, 12],
+                    textStyle: {
+                        color: '#d1d4dc',
+                        fontSize: 12,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                    },
                     formatter: '{b}: {c} trades ({d}%)',
                 },
                 series: [
@@ -5067,11 +5093,15 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#1e1e1e',
-                borderColor: '#383838',
+                backgroundColor: '#1e222d',
+                borderColor: '#363c4e',
                 borderWidth: 1,
                 padding: [8, 12],
-                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                textStyle: {
+                    color: '#d1d4dc',
+                    fontSize: 12,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                },
                 formatter: (params: unknown) => {
                     const pList = params as Array<{ data?: { meta?: StreakTradeMeta } }>;
                     const item = pList[0]?.data?.meta;
@@ -5171,8 +5201,8 @@ export class StrategyTester {
             monthStats[m].total++;
             if (isWin) monthStats[m].wins++;
 
-            if (isWin) winnersData[m]++;
-            else losersData[m]++;
+            if (isWin) winnersData[m] = (winnersData[m] ?? 0) + 1;
+            else losersData[m] = (losersData[m] ?? 0) + 1;
 
             if (t.exit?.time) {
                 totalDurationDays += Math.max(1, (t.exit.time - t.entry.time) / (86400 * 1000));
@@ -5271,11 +5301,15 @@ export class StrategyTester {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: '#1e1e1e',
-                borderColor: '#383838',
+                backgroundColor: '#1e222d',
+                borderColor: '#363c4e',
                 borderWidth: 1,
                 padding: [8, 12],
-                textStyle: { color: '#d1d4dc', fontSize: 12 },
+                textStyle: {
+                    color: '#d1d4dc',
+                    fontSize: 12,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+                },
                 formatter: (params: unknown) => {
                     const pList = params as Array<{ seriesName: string; value: number; name: string }>;
                     const monthMap: Record<string, string> = {
@@ -5988,7 +6022,7 @@ export class StrategyTester {
                         const cumPnlVal = cumPnl[idx] ?? 0;
 
                         return `
-                            <div style="background:#141414;border:1px solid #383838;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                            <div style="background:#1e222d;border:1px solid #363c4e;border-radius:6px;padding:8px 12px;color:#d1d4dc;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Trebuchet MS',Roboto,sans-serif;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
                                 <div style="font-weight:700;color:#ffffff;margin-bottom:6px;">Trade #${idx + 1}</div>
                                 <div style="display:flex;justify-content:space-between;gap:12px;margin:3px 0;">
                                     <span style="color:#787b86;">Max run-up:</span>
@@ -6006,7 +6040,7 @@ export class StrategyTester {
                                     <span style="color:#787b86;">Accumulated profit:</span>
                                     <span style="font-weight:600;color:${cumPnlVal >= 0 ? '#089981' : '#f23645'}">${formatSignedNumber(cumPnlVal)}</span>
                                 </div>
-                                <div style="border-top:1px solid #282a30;margin-top:6px;padding-top:4px;color:#787b86;font-size:10.5px;">
+                                <div style="border-top:1px solid #2a2e39;margin-top:6px;padding-top:4px;color:#787b86;font-size:11px;">
                                     ${entryDateStr} — ${exitDateStr}
                                 </div>
                             </div>
@@ -6015,7 +6049,7 @@ export class StrategyTester {
 
                     // Combined / Multi-pane tooltip (Image 3)
                     let html = `
-                        <div style="background:#141414;border:1px solid #383838;border-radius:5px;padding:8px 12px;color:#d1d4dc;font-size:11.5px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
+                        <div style="background:#1e222d;border:1px solid #363c4e;border-radius:6px;padding:8px 12px;color:#d1d4dc;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Trebuchet MS',Roboto,sans-serif;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.45);">
                             <div style="font-weight:700;margin-bottom:4px;color:#ffffff;">${date}</div>
                     `;
 
@@ -6037,7 +6071,7 @@ export class StrategyTester {
                         const rd = this.cachedRunupsDrawdowns[idx];
                         if (rd) {
                             html += `
-                                <div style="border-top:1px solid #282a30;margin-top:6px;padding-top:4px;color:#787b86;font-size:10.5px;">
+                                <div style="border-top:1px solid #2a2e39;margin-top:6px;padding-top:4px;color:#787b86;font-size:11px;">
                                     Trade #${idx + 1}: ${rd.entryDateStr} — ${rd.exitDateStr}
                                 </div>
                             `;

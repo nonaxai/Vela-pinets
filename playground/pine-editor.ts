@@ -424,6 +424,7 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
     // Script Dropdown Trigger Button
     const scriptBtn = document.createElement('button');
+    scriptBtn.className = 'vpe-script-dropdown-btn';
     scriptBtn.style.cssText =
         'all:unset;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--vela-radius-sm, 4px);background:var(--vela-surface-elev, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);color:var(--vela-fg, #d1d4dc);font-size:12px;font-weight:600;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s,border-color 0.15s;';
     const scriptBtnText = document.createElement('span');
@@ -530,10 +531,11 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     leftControls.append(scriptBtn, runBtn, divider, actionGroup);
     slotEl.appendChild(leftControls);
 
-    // ── Dropdown Popover Menu (Image 2) ──
+    // ── Dropdown Popover Menu ──
     const dropdownMenu = document.createElement('div');
+    dropdownMenu.className = 'vpe-script-dropdown';
     dropdownMenu.style.cssText =
-        'position:absolute;z-index:9999;width:300px;background:var(--vela-surface-overlay, #1e1e1e);border:1px solid var(--vela-border, #2e2e2e);border-radius:6px;box-shadow:var(--vela-shadow-dialog, 0 8px 24px rgba(0,0,0,0.6));padding:6px 0;display:none;font-family:inherit;color:var(--vela-fg, #d1d4dc);max-height:380px;overflow-y:auto;';
+        'position:absolute;z-index:9999;width:300px;background:#1e222d;border:1px solid #363c4e;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.45);padding:6px 0;display:none;font-family:-apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Ubuntu,sans-serif;color:#d1d4dc;max-height:380px;overflow-y:auto;';
 
     document.body.appendChild(dropdownMenu);
 
@@ -548,15 +550,15 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
         const allScripts = scriptStore.getScripts();
         const favScripts = allScripts.filter((s) => s.isFavorite);
 
-        // Section: FAVORITE SCRIPTS (Image 2)
+        // Section: FAVORITE SCRIPTS
         const favHeader = document.createElement('div');
-        favHeader.style.cssText = 'padding:6px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;';
+        favHeader.style.cssText = 'padding:6px 14px 4px 14px;font-size:10px;font-weight:700;color:#787b86;letter-spacing:0.8px;text-transform:uppercase;font-family:inherit;';
         favHeader.textContent = 'FAVORITE SCRIPTS';
         dropdownMenu.appendChild(favHeader);
 
         if (favScripts.length === 0) {
             const emptyFav = document.createElement('div');
-            emptyFav.style.cssText = 'padding:6px 12px 10px 12px;font-size:12px;color:var(--vela-fg-muted, #868a96);line-height:1.4;';
+            emptyFav.style.cssText = 'padding:6px 14px 10px 14px;font-size:12px;color:#787b86;line-height:1.4;font-family:inherit;';
             emptyFav.textContent = 'No favorite scripts yet — star the script you are editing to list it here.';
             dropdownMenu.appendChild(emptyFav);
         } else {
@@ -565,10 +567,10 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
             }
         }
 
-        // Section: ALL SAVED SCRIPTS (User request: list of saved local pine files)
+        // Section: ALL SAVED SCRIPTS
         const allHeader = document.createElement('div');
         allHeader.style.cssText =
-            'padding:10px 12px 4px 12px;font-size:11px;font-weight:700;color:var(--vela-fg-muted, #868a96);letter-spacing:0.5px;text-transform:uppercase;border-top:1px solid var(--vela-border, #2e2e2e);margin-top:4px;';
+            'padding:10px 14px 4px 14px;font-size:10px;font-weight:700;color:#787b86;letter-spacing:0.8px;text-transform:uppercase;border-top:1px solid #2a2e39;margin-top:4px;font-family:inherit;';
         allHeader.textContent = 'ALL SAVED SCRIPTS';
         dropdownMenu.appendChild(allHeader);
 
@@ -578,15 +580,15 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
 
         // Bottom row: + New script
         const dividerEl = document.createElement('div');
-        dividerEl.style.cssText = 'height:1px;background:var(--vela-border, #2e2e2e);margin:6px 0;';
+        dividerEl.style.cssText = 'height:1px;background:#2a2e39;margin:6px 0;';
         dropdownMenu.appendChild(dividerEl);
 
         const newRow = document.createElement('div');
         newRow.style.cssText =
-            'padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--vela-fg, #d1d4dc);cursor:pointer;transition:background 0.15s;';
-        newRow.innerHTML = `<span style="font-size:16px;line-height:1;opacity:0.8;">+</span><span>New script</span>`;
+            'padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:#2962ff;cursor:pointer;font-family:inherit;transition:background 0.15s;';
+        newRow.innerHTML = `<span style="font-size:15px;line-height:1;font-weight:700;">+</span><span>New script</span>`;
         newRow.onmouseenter = () => {
-            newRow.style.background = 'var(--vela-hover, rgba(255, 255, 255, 0.06))';
+            newRow.style.background = '#2a2e39';
         };
         newRow.onmouseleave = () => {
             newRow.style.background = 'transparent';
@@ -606,7 +608,19 @@ export function mountPineEditor(ctx: WidgetContext, body: HTMLElement, header: S
     function createScriptMenuItem(s: PineScriptItem): HTMLElement {
         const item = document.createElement('div');
         const isActive = s.id === activeScript?.id;
-        item.style.cssText = `padding:6px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;transition:background 0.15s;background:${isActive ? 'var(--vela-active, rgba(255, 255, 255, 0.08))' : 'transparent'};color:${isActive ? 'var(--vela-accent, #2962ff)' : 'var(--vela-fg, #d1d4dc)'};`;
+        item.style.cssText = `padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12.5px;font-family:inherit;transition:background 0.15s, color 0.15s;background:${isActive ? 'rgba(41, 98, 255, 0.12)' : 'transparent'};color:${isActive ? '#2962ff' : '#d1d4dc'};`;
+        item.onmouseenter = () => {
+            if (!isActive) {
+                item.style.background = '#2a2e39';
+                item.style.color = '#ffffff';
+            }
+        };
+        item.onmouseleave = () => {
+            if (!isActive) {
+                item.style.background = 'transparent';
+                item.style.color = '#d1d4dc';
+            }
+        };
 
         const nameSpan = document.createElement('div');
         nameSpan.style.cssText = 'display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;';

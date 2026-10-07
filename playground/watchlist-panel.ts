@@ -401,30 +401,49 @@ const CSS = `
 
 .vela-watchlist-menu {
     position: absolute;
-    background: var(--vela-surface-elev, #1e222d);
-    border: 1px solid var(--vela-border, #2a2e39);
+    background: #1e222d;
+    border: 1px solid #363c4e;
     border-radius: 6px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    z-index: 100;
-    min-width: 170px;
-    padding: 4px 0;
-    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 10000;
+    min-width: 210px;
+    padding: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+    user-select: none;
+    box-sizing: border-box;
+}
+.vela-watchlist-menu-header {
+    padding: 4px 8px 6px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #787b86;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
 }
 .vela-watchlist-menu-item {
-    padding: 6px 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
     cursor: pointer;
-    color: var(--vela-fg, #d1d4dc);
+    color: #d1d4dc;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    font-size: 12.5px;
+    gap: 8px;
+    transition: background 100ms ease, color 100ms ease;
 }
 .vela-watchlist-menu-item:hover {
-    background: var(--vela-hover, rgba(255, 255, 255, 0.08));
-    color: var(--vela-fg-bright, #f0f3fa);
+    background: #2a2e39;
+    color: #ffffff;
+}
+.vela-watchlist-menu-item.is-active {
+    color: #2962ff;
+    font-weight: 600;
+    background: rgba(41, 98, 255, 0.12);
 }
 .vela-watchlist-menu-sep {
     height: 1px;
-    background: var(--vela-border, #2a2e39);
+    background: #2a2e39;
     margin: 4px 0;
 }
 `;
@@ -670,9 +689,13 @@ export function mountWatchlistPanel(
         menuEl = doc.createElement('div');
         menuEl.className = 'vela-watchlist-menu';
 
+        const headerEl = doc.createElement('div');
+        headerEl.className = 'vela-watchlist-menu-header';
+        headerEl.textContent = 'SORT WATCHLIST';
+
         const sortSymbol = doc.createElement('div');
         sortSymbol.className = 'vela-watchlist-menu-item';
-        sortSymbol.textContent = 'Sort by Symbol (A-Z)';
+        sortSymbol.innerHTML = `<span>Sort by Symbol (A-Z)</span><span style="font-size:10px;opacity:0.6;">A→Z</span>`;
         sortSymbol.onclick = () => {
             items.sort((a, b) => a.displayTicker.localeCompare(b.displayTicker));
             saveItems();
@@ -682,7 +705,7 @@ export function mountWatchlistPanel(
 
         const sortChgDesc = doc.createElement('div');
         sortChgDesc.className = 'vela-watchlist-menu-item';
-        sortChgDesc.textContent = 'Sort by Change % (High to Low)';
+        sortChgDesc.innerHTML = `<span>Sort by Change % (High to Low)</span><span style="font-size:10px;color:#089981;">↓</span>`;
         sortChgDesc.onclick = () => {
             items.sort((a, b) => b.changePct - a.changePct);
             saveItems();
@@ -692,7 +715,7 @@ export function mountWatchlistPanel(
 
         const sortChgAsc = doc.createElement('div');
         sortChgAsc.className = 'vela-watchlist-menu-item';
-        sortChgAsc.textContent = 'Sort by Change % (Low to High)';
+        sortChgAsc.innerHTML = `<span>Sort by Change % (Low to High)</span><span style="font-size:10px;color:#f23645;">↑</span>`;
         sortChgAsc.onclick = () => {
             items.sort((a, b) => a.changePct - b.changePct);
             saveItems();
@@ -705,7 +728,7 @@ export function mountWatchlistPanel(
 
         const resetBtn = doc.createElement('div');
         resetBtn.className = 'vela-watchlist-menu-item';
-        resetBtn.textContent = 'Reset to Defaults';
+        resetBtn.innerHTML = `<span>Reset to Defaults</span><span style="font-size:11px;opacity:0.6;">↺</span>`;
         resetBtn.onclick = () => {
             items = [...DEFAULT_WATCHLIST];
             saveItems();
@@ -713,7 +736,7 @@ export function mountWatchlistPanel(
             closeMenu();
         };
 
-        menuEl.append(sortSymbol, sortChgDesc, sortChgAsc, sep, resetBtn);
+        menuEl.append(headerEl, sortSymbol, sortChgDesc, sortChgAsc, sep, resetBtn);
 
         const rect = moreBtn.getBoundingClientRect();
         menuEl.style.top = `${rect.bottom + 4}px`;
