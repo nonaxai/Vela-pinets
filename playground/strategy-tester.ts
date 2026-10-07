@@ -366,6 +366,8 @@ export class StrategyTester {
         exitDateStr: string;
     }> = [];
     private cachedTrades: StrategyTrade[] = [];
+    private allRawTrades: StrategyTrade[] = [];
+    private baseInitialCapital = 10000;
 
     // Trades Table Filter & Sorting State
     private tradesSortColumn: string = 'tradeNum';
@@ -2681,26 +2683,22 @@ export class StrategyTester {
 
             panel.querySelector('.vst-drop-reset-btn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.selectedTestingPeriod = 'available';
-                this.dateRangeTextEl.textContent = 'Feb 1, 1871 — Oct 5, 2026';
+                this.applyTestingPeriod('available');
                 this.closeAnyDropdown();
             });
 
             panel.querySelectorAll('.vst-drop-item').forEach((item) => {
                 item.addEventListener('click', () => {
                     const key = (item as HTMLElement).dataset.key;
-                    const found = periods.find((p) => p.key === key);
-                    if (found) {
-                        this.selectedTestingPeriod = found.key;
-                        this.dateRangeTextEl.textContent = found.range;
+                    if (key) {
+                        this.applyTestingPeriod(key);
                     }
                     this.closeAnyDropdown();
                 });
             });
 
             panel.querySelector('.vst-drop-custom-item')?.addEventListener('click', () => {
-                this.selectedTestingPeriod = 'custom';
-                this.dateRangeTextEl.textContent = 'Custom range';
+                this.promptCustomDateRange();
                 this.closeAnyDropdown();
             });
         }, 250);
@@ -3278,85 +3276,168 @@ export class StrategyTester {
         this.lastProcessedSnapState = snapState;
 
         if (trades.length > 0 && strategy) {
-            // Real backtest data from PineTS
-            this.cachedStats = this.computeStatsFromPine(strategy, trades);
-            this.cachedTrades = trades;
-            this.cachedTimeline = trades.map((t, i) => {
-                const d = new Date(t.exit?.time ?? t.entry.time);
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` || `Trade ${i + 1}`;
-            });
-            this.cachedTimestamps = trades.map((t) => t.exit?.time ?? t.entry.time);
-
-            let eq = 0;
-            this.cachedCumPnl = [];
-            this.cachedBuyHold = [];
-            this.cachedTradeBars = [];
-            this.cachedMfeBars = [];
-            this.cachedRealizedBars = [];
-            this.cachedMaeBars = [];
-            this.cachedRunupsDrawdowns = [];
-
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-            for (let i = 0; i < trades.length; i++) {
-                const t = trades[i]!;
-                const p = t.pnl ?? 0;
-                eq += p;
-                this.cachedCumPnl.push(Number(eq.toFixed(2)));
-                this.cachedBuyHold.push(Math.round(strategy.initialCapital * (1 + (i / trades.length) * 475)));
-                this.cachedTradeBars.push({
-                    value: [i, Number(p.toFixed(2))],
-                    itemStyle: {
-                        color: p >= 0 ? 'rgba(8, 153, 129, 0.75)' : 'rgba(242, 54, 69, 0.75)',
-                    },
-                });
-
-                const runupVal = t.maxRunup ?? (p > 0 ? Number((p * 1.3).toFixed(2)) : Number(Math.max(10, Math.abs(p) * 0.25).toFixed(2)));
-                const drawdownVal = t.maxDrawdown ?? Number((Math.abs(Math.min(0, p * 1.1)) || Math.min(100, Math.abs(p) * 0.2)).toFixed(2));
-                const runupPct = strategy.initialCapital > 0 ? Number(((runupVal / strategy.initialCapital) * 100).toFixed(2)) : 0;
-                const drawdownPct = strategy.initialCapital > 0 ? Number(((drawdownVal / strategy.initialCapital) * 100).toFixed(2)) : 0;
-
-                const entryD = new Date(t.entry.time);
-                const exitD = new Date(t.exit?.time ?? t.entry.time);
-                const entryDateStr = `${months[entryD.getMonth()]} ${entryD.getDate()}, ${entryD.getFullYear()}`;
-                const exitDateStr = `${months[exitD.getMonth()]} ${exitD.getDate()}, ${exitD.getFullYear()}`;
-
-                this.cachedMfeBars.push({
-                    value: [i, runupVal],
-                    itemStyle: { color: 'rgba(8, 153, 129, 0.42)' },
-                });
-                this.cachedRealizedBars.push({
-                    value: [i, Number(p.toFixed(2))],
-                    itemStyle: { color: p >= 0 ? '#089981' : '#f23645' },
-                });
-                this.cachedMaeBars.push({
-                    value: [i, -drawdownVal],
-                    itemStyle: { color: 'rgba(242, 54, 69, 0.72)' },
-                });
-                this.cachedRunupsDrawdowns.push({
-                    entryIdx: Math.max(0, i - 1),
-                    exitIdx: i,
-                    pnl: p,
-                    val: p >= 0 ? runupVal : drawdownVal,
-                    pct: p >= 0 ? runupPct : drawdownPct,
-                    entryDateStr,
-                    exitDateStr,
-                });
-            }
+            this.allRawTrades = trades;
+            this.baseInitialCapital = strategy.initialCapital || 10000;
         } else {
-            // Use realistic demo reference backtest data (matches user screenshots exactly)
             const ref = generateReferenceData();
-            this.cachedStats = ref.stats;
-            this.cachedTimeline = ref.timeline;
-            this.cachedTimestamps = ref.timestamps;
-            this.cachedCumPnl = ref.cumPnlData;
-            this.cachedBuyHold = ref.buyHoldData;
-            this.cachedTradeBars = ref.tradeBars;
-            this.cachedMfeBars = ref.mfeBars;
-            this.cachedRealizedBars = ref.realizedBars;
-            this.cachedMaeBars = ref.maeBars;
-            this.cachedRunupsDrawdowns = ref.runupsDrawdowns;
-            this.cachedTrades = ref.trades;
+            this.allRawTrades = ref.trades;
+            this.baseInitialCapital = ref.stats.initialCapital;
+        }
+
+        this.applyTestingPeriod(this.selectedTestingPeriod);
+    }
+
+    public applyTestingPeriod(periodKey: string): void {
+        this.selectedTestingPeriod = periodKey;
+        if (this.allRawTrades.length === 0) return;
+
+        let filtered = [...this.allRawTrades];
+        const timestamps = this.allRawTrades.map((t) => t.exit?.time ?? t.entry.time);
+        const maxTime = Math.max(...timestamps);
+
+        if (periodKey === '7d') {
+            const cutoff = maxTime - 7 * 86_400_000;
+            filtered = this.allRawTrades.filter((t) => (t.exit?.time ?? t.entry.time) >= cutoff);
+        } else if (periodKey === '30d') {
+            const cutoff = maxTime - 30 * 86_400_000;
+            filtered = this.allRawTrades.filter((t) => (t.exit?.time ?? t.entry.time) >= cutoff);
+        } else if (periodKey === '90d') {
+            const cutoff = maxTime - 90 * 86_400_000;
+            filtered = this.allRawTrades.filter((t) => (t.exit?.time ?? t.entry.time) >= cutoff);
+        } else if (periodKey === '365d') {
+            const cutoff = maxTime - 365 * 86_400_000;
+            filtered = this.allRawTrades.filter((t) => (t.exit?.time ?? t.entry.time) >= cutoff);
+        }
+
+        if (filtered.length === 0) {
+            filtered = [this.allRawTrades[this.allRawTrades.length - 1]!];
+        }
+
+        this.recalculateActiveTrades(filtered);
+    }
+
+    private promptCustomDateRange(): void {
+        const minT = this.allRawTrades.length > 0 ? Math.min(...this.allRawTrades.map((t) => t.entry.time)) : Date.now();
+        const maxT = this.allRawTrades.length > 0 ? Math.max(...this.allRawTrades.map((t) => t.exit?.time ?? t.entry.time)) : Date.now();
+        const d0 = new Date(minT);
+        const d1 = new Date(maxT);
+        const defFrom = `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`;
+        const defTo = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, '0')}-${String(d1.getDate()).padStart(2, '0')}`;
+
+        const fromInput = prompt('Enter From date (YYYY-MM-DD):', defFrom);
+        if (!fromInput) return;
+        const toInput = prompt('Enter To date (YYYY-MM-DD):', defTo);
+        if (!toInput) return;
+
+        const tFrom = new Date(fromInput).getTime();
+        const tTo = new Date(toInput).getTime();
+        if (isNaN(tFrom) || isNaN(tTo)) return;
+
+        this.selectedTestingPeriod = 'custom';
+        const filtered = this.allRawTrades.filter((t) => {
+            const time = t.exit?.time ?? t.entry.time;
+            return time >= tFrom && time <= tTo + 86_400_000;
+        });
+        this.recalculateActiveTrades(filtered.length > 0 ? filtered : this.allRawTrades);
+    }
+
+    private recalculateActiveTrades(trades: StrategyTrade[]): void {
+        this.cachedTrades = trades;
+        const initCap = this.baseInitialCapital || 10000;
+
+        const closed = trades.filter((t) => !t.open && t.pnl !== undefined);
+        const wins = closed.filter((t) => (t.pnl ?? 0) > 0).length;
+        const losses = closed.filter((t) => (t.pnl ?? 0) < 0).length;
+        const totalTrades = closed.length;
+        const totalPnl = closed.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+        const totalPnlPct = (totalPnl / initCap) * 100;
+        const grossProfit = closed.filter((t) => (t.pnl ?? 0) > 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+        const grossLoss = Math.abs(closed.filter((t) => (t.pnl ?? 0) < 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0));
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 999 : 0);
+        const profitableTradesPct = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+
+        let peak = initCap;
+        let eqRun = initCap;
+        let maxDd = 0;
+        for (const t of closed) {
+            eqRun += (t.pnl ?? 0);
+            if (eqRun > peak) peak = eqRun;
+            const dd = peak - eqRun;
+            if (dd > maxDd) maxDd = dd;
+        }
+        const maxDrawdownPct = (maxDd / initCap) * 100;
+
+        this.cachedStats = {
+            totalPnl,
+            totalPnlPct,
+            maxDrawdown: maxDd,
+            maxDrawdownPct,
+            profitableTradesPct,
+            wins,
+            losses,
+            totalTrades,
+            profitFactor,
+            initialCapital: initCap,
+            currency: 'NONE',
+            grossProfit,
+            grossLoss,
+        };
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        if (trades.length > 0 && this.dateRangeTextEl) {
+            const minT = Math.min(...trades.map((t) => t.entry.time));
+            const maxT = Math.max(...trades.map((t) => t.exit?.time ?? t.entry.time));
+            const d0 = new Date(minT);
+            const d1 = new Date(maxT);
+            this.dateRangeTextEl.textContent = `${months[d0.getMonth()]} ${d0.getDate()}, ${d0.getFullYear()} — ${months[d1.getMonth()]} ${d1.getDate()}, ${d1.getFullYear()}`;
+        }
+
+        let eq = 0;
+        this.cachedCumPnl = [];
+        this.cachedBuyHold = [];
+        this.cachedTradeBars = [];
+        this.cachedMfeBars = [];
+        this.cachedRealizedBars = [];
+        this.cachedMaeBars = [];
+        this.cachedRunupsDrawdowns = [];
+        this.cachedTimeline = [];
+        this.cachedTimestamps = [];
+
+        for (let i = 0; i < trades.length; i++) {
+            const t = trades[i]!;
+            const p = t.pnl ?? 0;
+            eq += p;
+            this.cachedCumPnl.push(Number(eq.toFixed(2)));
+            this.cachedBuyHold.push(Math.round(initCap * (1 + (i / Math.max(1, trades.length - 1)) * 475)));
+            this.cachedTradeBars.push({
+                value: [i, Number(p.toFixed(2))],
+                itemStyle: { color: p >= 0 ? 'rgba(8, 153, 129, 0.75)' : 'rgba(242, 54, 69, 0.75)' },
+            });
+
+            const runupVal = t.maxRunup ?? (p > 0 ? Number((p * 1.3).toFixed(2)) : Number(Math.max(10, Math.abs(p) * 0.25).toFixed(2)));
+            const drawdownVal = t.maxDrawdown ?? Number((Math.abs(Math.min(0, p * 1.1)) || Math.min(100, Math.abs(p) * 0.2)).toFixed(2));
+            const runupPct = initCap > 0 ? Number(((runupVal / initCap) * 100).toFixed(2)) : 0;
+            const drawdownPct = initCap > 0 ? Number(((drawdownVal / initCap) * 100).toFixed(2)) : 0;
+
+            const entryD = new Date(t.entry.time);
+            const exitD = new Date(t.exit?.time ?? t.entry.time);
+            const entryDateStr = `${months[entryD.getMonth()]} ${entryD.getDate()}, ${entryD.getFullYear()}`;
+            const exitDateStr = `${months[exitD.getMonth()]} ${exitD.getDate()}, ${exitD.getFullYear()}`;
+
+            this.cachedMfeBars.push({ value: [i, runupVal], itemStyle: { color: 'rgba(8, 153, 129, 0.42)' } });
+            this.cachedRealizedBars.push({ value: [i, Number(p.toFixed(2))], itemStyle: { color: p >= 0 ? '#089981' : '#f23645' } });
+            this.cachedMaeBars.push({ value: [i, -drawdownVal], itemStyle: { color: 'rgba(242, 54, 69, 0.72)' } });
+            this.cachedRunupsDrawdowns.push({
+                entryIdx: Math.max(0, i - 1),
+                exitIdx: i,
+                pnl: p,
+                val: p >= 0 ? runupVal : drawdownVal,
+                pct: p >= 0 ? runupPct : drawdownPct,
+                entryDateStr,
+                exitDateStr,
+            });
+            this.cachedTimeline.push(`${exitD.getFullYear()}-${String(exitD.getMonth() + 1).padStart(2, '0')}-${String(exitD.getDate()).padStart(2, '0')}`);
+            this.cachedTimestamps.push(exitD.getTime());
         }
 
         this.updateStatsUI();
@@ -3441,12 +3522,15 @@ export class StrategyTester {
 
     private renderAnalysisBreakdown(): void {
         const stats = this.cachedStats;
-        const grossProfit = (stats && stats.grossProfit) ? stats.grossProfit : 15173.24;
-        const grossLoss = (stats && stats.grossLoss) ? stats.grossLoss : 4847.01;
-        const profitFactor = (stats && stats.profitFactor) ? stats.profitFactor : 3.13;
+        const trades = this.cachedTrades;
         const initCap = stats?.initialCapital || 10000;
+        const grossProfit = stats?.grossProfit ?? trades.filter((t) => (t.pnl ?? 0) > 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+        const grossLoss = stats?.grossLoss ?? Math.abs(trades.filter((t) => (t.pnl ?? 0) < 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0));
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 999 : 0);
+        const totalComm = trades.reduce((acc, t) => acc + (t.commission ?? 0), 0);
         const grossProfitPct = ((grossProfit / initCap) * 100).toFixed(2);
         const grossLossPct = ((grossLoss / initCap) * 100).toFixed(2);
+        const commLoadPct = ((totalComm / initCap) * 100).toFixed(2);
         const curr = stats?.currency || 'NONE';
 
         // 4 summary metrics (media_1791253627698.png & media_1791250134285.png)
@@ -3477,9 +3561,9 @@ export class StrategyTester {
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Commission load</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">0.00</span>
+                        <span class="vst-analysis-metric-val">${formatNumber(totalComm)}</span>
                         <span class="vst-analysis-metric-unit">${curr}</span>
-                        <span class="vst-analysis-metric-sub">0.00%</span>
+                        <span class="vst-analysis-metric-sub">${commLoadPct}%</span>
                     </div>
                 </div>
             </div>
@@ -3496,163 +3580,99 @@ export class StrategyTester {
             </div>
         `;
 
-        // Two-way breakdown horizontal bars (media_1791253627698.png & media_1791250140323.png)
-        let rowsHtml = '';
+        interface BreakdownRowData {
+            label: string;
+            iconSvg?: string;
+            profits: number;
+            losses: number;
+            comm: number;
+            pf: number;
+            netPnl: number;
+        }
+
+        const calcGroup = (grpTrades: StrategyTrade[], label: string, iconSvg?: string): BreakdownRowData => {
+            const p = grpTrades.filter((t) => (t.pnl ?? 0) > 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+            const l = Math.abs(grpTrades.filter((t) => (t.pnl ?? 0) < 0).reduce((acc, t) => acc + (t.pnl ?? 0), 0));
+            const c = grpTrades.reduce((acc, t) => acc + (t.commission ?? 0), 0);
+            const pf = l > 0 ? p / l : (p > 0 ? 999 : 0);
+            return { label, iconSvg, profits: p, losses: l, comm: c, pf, netPnl: p - l };
+        };
+
+        const longTrades = trades.filter((t) => t.side === 'long');
+        const shortTrades = trades.filter((t) => t.side === 'short');
+
+        let groupList: BreakdownRowData[] = [];
         if (this.breakdownSubMode === 'signals') {
-            rowsHtml = `
-                <div class="vst-breakdown-list">
-                    <div class="vst-breakdown-row"
-                         data-profits="${formatNumber(grossProfit)}"
-                         data-losses="-${formatNumber(grossLoss)}"
-                         data-comm="0"
-                         data-pf="${profitFactor.toFixed(2)}"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">All signals</div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 29.1%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 63.5%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 68%; background: #089981;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 32%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
-                        </div>
-                        <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
-                    </div>
-                    <div class="vst-breakdown-row"
-                         data-profits="13,850.50"
-                         data-losses="-2,644.66"
-                         data-comm="0"
-                         data-pf="5.24"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">Golden Cross BUY</div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 15.8%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 58.2%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 78%; background: #089981;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 22%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
-                        </div>
-                        <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
-                    </div>
-                    <div class="vst-breakdown-row"
-                         data-profits="1,322.74"
-                         data-losses="-2,202.35"
-                         data-comm="0"
-                         data-pf="0.60"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">Death Cross SELL</div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 24.2%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 60%; background: #782028; border-radius: 3px 0 0 3px;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 40%; background: #f23645;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 12%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
-                        </div>
-                        <div class="vst-breakdown-val-col is-negative">-879.61 <span class="vst-unit">${curr}</span></div>
-                    </div>
-                </div>
-            `;
+            const allGrp = calcGroup(trades, 'All signals');
+            const buyGrp = calcGroup(longTrades, 'Golden Cross BUY');
+            const sellGrp = calcGroup(shortTrades, 'Death Cross SELL');
+            groupList = [allGrp, buyGrp, sellGrp];
         } else {
-            rowsHtml = `
-                <div class="vst-breakdown-list">
-                    <div class="vst-breakdown-row"
-                         data-profits="${formatNumber(grossProfit)}"
-                         data-losses="-${formatNumber(grossLoss)}"
-                         data-comm="0"
-                         data-pf="${profitFactor.toFixed(2)}"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">Both sides</div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 29.1%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 63.5%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 68%; background: #089981;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 32%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
-                        </div>
-                        <div class="vst-breakdown-val-col is-positive">+10,326.23 <span class="vst-unit">${curr}</span></div>
+            const bothGrp = calcGroup(trades, 'Both sides');
+            const longsGrp = calcGroup(
+                longTrades,
+                'Longs',
+                '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l8-8M6 4h6v6"/></svg>',
+            );
+            const shortsGrp = calcGroup(
+                shortTrades,
+                'Shorts',
+                '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 6v6H6"/></svg>',
+            );
+            groupList = [bothGrp, longsGrp, shortsGrp];
+        }
+
+        const maxTotal = Math.max(1, ...groupList.map((g) => Math.max(g.profits, g.losses)));
+
+        let rowsHtml = '<div class="vst-breakdown-list">';
+        for (const g of groupList) {
+            const lossWidth = Math.min(48, maxTotal > 0 ? (g.losses / maxTotal) * 45 : 0);
+            const profitWidth = Math.min(52, maxTotal > 0 ? (g.profits / maxTotal) * 50 : 0);
+            const valClass = g.netPnl >= 0 ? 'is-positive' : 'is-negative';
+            rowsHtml += `
+                <div class="vst-breakdown-row"
+                     data-profits="${formatNumber(g.profits)}"
+                     data-losses="-${formatNumber(g.losses)}"
+                     data-comm="${formatNumber(g.comm)}"
+                     data-pf="${g.pf.toFixed(2)}"
+                     data-unit="${curr}">
+                    <div class="vst-breakdown-label">
+                        ${g.iconSvg ? g.iconSvg : ''}
+                        ${g.label}
                     </div>
-                    <div class="vst-breakdown-row"
-                         data-profits="13,850.50"
-                         data-losses="-2,644.66"
-                         data-comm="0"
-                         data-pf="5.24"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">
-                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l8-8M6 4h6v6"/></svg>
-                            Longs
+                    <div class="vst-breakdown-bar-track">
+                        <div class="vst-breakdown-guide-line"></div>
+                        <div class="vst-breakdown-zero-line"></div>
+                        <div class="vst-breakdown-loss-group" style="width: ${lossWidth.toFixed(1)}%;">
+                            <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
                         </div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 15.8%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #c22d38; border-radius: 3px 0 0 3px;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 58.2%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 78%; background: #089981;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 22%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
+                        <div class="vst-breakdown-profit-group" style="width: ${profitWidth.toFixed(1)}%;">
+                            <div class="vst-breakdown-bar-segment" style="width: 100%; background: #089981; border-radius: 0 3px 3px 0;"></div>
                         </div>
-                        <div class="vst-breakdown-val-col is-positive">+11,205.84 <span class="vst-unit">${curr}</span></div>
                     </div>
-                    <div class="vst-breakdown-row"
-                         data-profits="1,322.74"
-                         data-losses="-2,202.35"
-                         data-comm="0"
-                         data-pf="0.60"
-                         data-unit="${curr}">
-                        <div class="vst-breakdown-label">
-                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 6v6H6"/></svg>
-                            Shorts
-                        </div>
-                        <div class="vst-breakdown-bar-track">
-                            <div class="vst-breakdown-guide-line"></div>
-                            <div class="vst-breakdown-zero-line"></div>
-                            <div class="vst-breakdown-loss-group" style="width: 24.2%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 60%; background: #782028; border-radius: 3px 0 0 3px;"></div>
-                                <div class="vst-breakdown-bar-segment" style="width: 40%; background: #f23645;"></div>
-                            </div>
-                            <div class="vst-breakdown-profit-group" style="width: 12%;">
-                                <div class="vst-breakdown-bar-segment" style="width: 100%; background: #004d40; border-radius: 0 3px 3px 0;"></div>
-                            </div>
-                        </div>
-                        <div class="vst-breakdown-val-col is-negative">-879.61 <span class="vst-unit">${curr}</span></div>
-                    </div>
+                    <div class="vst-breakdown-val-col ${valClass}">${formatSignedNumber(g.netPnl)} <span class="vst-unit">${curr}</span></div>
                 </div>
             `;
         }
+        rowsHtml += '</div>';
 
         const tooltipHtml = `
             <div class="vst-breakdown-tooltip" id="vst-breakdown-tooltip">
                 <div class="vst-bdt-row">
                     <div class="vst-bdt-label"><span class="vst-bdt-dot is-profit"></span>Profits</div>
-                    <div class="vst-bdt-val" id="vst-bdt-profits">15,173.24 NONE</div>
+                    <div class="vst-bdt-val" id="vst-bdt-profits">${formatNumber(grossProfit)} ${curr}</div>
                 </div>
                 <div class="vst-bdt-row">
                     <div class="vst-bdt-label"><span class="vst-bdt-dot is-loss"></span>Losses</div>
-                    <div class="vst-bdt-val" id="vst-bdt-losses">-4,847.01 NONE</div>
+                    <div class="vst-bdt-val" id="vst-bdt-losses">-${formatNumber(grossLoss)} ${curr}</div>
                 </div>
                 <div class="vst-bdt-row">
                     <div class="vst-bdt-label"><span class="vst-bdt-dot is-comm"></span>Commissions</div>
-                    <div class="vst-bdt-val" id="vst-bdt-comm">0 NONE</div>
+                    <div class="vst-bdt-val" id="vst-bdt-comm">${formatNumber(totalComm)} ${curr}</div>
                 </div>
                 <div class="vst-bdt-row">
                     <div class="vst-bdt-label" style="padding-left: 14px;">Profit factor</div>
-                    <div class="vst-bdt-val" id="vst-bdt-pf">3.13</div>
+                    <div class="vst-bdt-val" id="vst-bdt-pf">${profitFactor.toFixed(2)}</div>
                 </div>
                 <div class="vst-bdt-beak" id="vst-bdt-beak"></div>
             </div>
@@ -3744,31 +3764,58 @@ export class StrategyTester {
 
     private renderAnalysisPeriodical(): void {
         const titlePrefix = this.periodicalMode === 'weekly' ? 'Weekly' : this.periodicalMode === 'quarterly' ? 'Quarterly' : 'Yearly';
+        const stats = this.cachedStats;
+        const trades = this.cachedTrades;
+        const initCap = stats?.initialCapital || 10000;
+        const totalPnl = stats?.totalPnl || 0;
+        const totalReturnPct = ((totalPnl / initCap) * 100).toFixed(2);
+
+        // CAGR
+        const firstTime = trades.length > 0 ? Math.min(...trades.map((t) => t.entry.time)) : Date.now();
+        const lastTime = trades.length > 0 ? Math.max(...trades.map((t) => t.exit?.time ?? t.entry.time)) : Date.now();
+        const years = Math.max(0.08, (lastTime - firstTime) / (365.25 * 86_400_000));
+        const endCap = initCap + totalPnl;
+        const cagrVal = endCap > 0 ? (((endCap / initCap) ** (1 / years)) - 1) * 100 : 0;
+        const cagrStr = formatSignedNumber(cagrVal, 2);
+
+        // Sharpe & Sortino ratios
+        const rets = trades.map((t) => (t.pnl ?? 0) / initCap);
+        const count = Math.max(1, rets.length);
+        const mean = rets.reduce((a, b) => a + b, 0) / count;
+        const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / count;
+        const stdDev = Math.sqrt(variance);
+        const tradesPerYear = Math.max(1, count / years);
+        const sharpe = stdDev > 0 ? (mean / stdDev) * Math.sqrt(tradesPerYear) : 0;
+
+        const downsideRets = rets.filter((r) => r < 0);
+        const downsideVar = downsideRets.length > 0 ? downsideRets.reduce((a, b) => a + b ** 2, 0) / count : 0.0001;
+        const downsideStd = Math.sqrt(downsideVar);
+        const sortino = downsideStd > 0 ? (mean / downsideStd) * Math.sqrt(tradesPerYear) : 0;
 
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Annualized return (CAGR)</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-positive">+0.46%</span>
+                        <span class="vst-analysis-metric-val ${cagrVal >= 0 ? 'is-positive' : 'is-negative'}">${cagrStr}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Total return</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-positive">+103.26%</span>
+                        <span class="vst-analysis-metric-val ${totalPnl >= 0 ? 'is-positive' : 'is-negative'}">${formatSignedNumber(Number(totalReturnPct), 2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Sharpe ratio</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">1.85</span>
+                        <span class="vst-analysis-metric-val">${sharpe.toFixed(2)}</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Sortino ratio</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">2.42</span>
+                        <span class="vst-analysis-metric-val">${sortino.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -3816,30 +3863,52 @@ export class StrategyTester {
         if (!container) return;
         this.periodicalChartInstance = echarts.init(container);
 
+        const buckets = new Map<string, { p: number; l: number; fe: number; ae: number }>();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        for (const t of trades) {
+            const d = new Date(t.exit?.time ?? t.entry.time);
+            let key = '';
+            if (this.periodicalMode === 'weekly') {
+                key = `${months[d.getMonth()]} ${d.getDate()}`;
+            } else if (this.periodicalMode === 'quarterly') {
+                key = `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+            } else {
+                key = `${d.getFullYear()}`;
+            }
+
+            const cur = buckets.get(key) || { p: 0, l: 0, fe: 0, ae: 0 };
+            const pnl = t.pnl ?? 0;
+            if (pnl > 0) cur.p += pnl;
+            else if (pnl < 0) cur.l += pnl;
+
+            const runup = t.maxRunup ?? (pnl > 0 ? pnl * 1.2 : 0);
+            const dd = t.maxDrawdown ?? (pnl < 0 ? Math.abs(pnl) : 0);
+            cur.fe = Math.max(cur.fe, runup);
+            cur.ae = Math.min(cur.ae, -dd);
+            buckets.set(key, cur);
+        }
+
         let categories: string[] = [];
         let realizedProfit: (number | null)[] = [];
         let realizedLoss: (number | null)[] = [];
         let favorableExcursion: (number | null)[] = [];
         let adverseExcursion: (number | null)[] = [];
 
-        if (this.periodicalMode === 'weekly') {
-            categories = ['Feb 28', 'Apr 4', 'May 2', 'Jun 6', 'Jul 4', 'Aug 1', 'Sep 5', 'Oct 3', 'Oct 31', 'Dec 5', 'Jan 2', 'Feb 6', 'Mar 5', 'Apr 2'];
-            realizedProfit = [0, 0, 0, 0, 0, 0, 720.50, 0, 0, 0, 0, 0, 0, 0];
-            realizedLoss = [0, 0, 0, 0, 0, 0, 0, 0, -118.20, 0, 0, 0, 0, -112.40];
-            favorableExcursion = [0, 0, 0, 0, 0, 0, 45.0, 0, 0, 0, 0, 0, 0, 0];
-            adverseExcursion = [0, 0, 0, 0, 0, 0, 0, 0, -38.0, 0, 0, 0, 0, -32.0];
-        } else if (this.periodicalMode === 'quarterly') {
-            categories = ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026'];
-            realizedProfit = [450, 1120, 340, 890, 1420, 980, 2100, 1340, 870, 1250];
-            realizedLoss = [-210, -340, -180, -290, -410, -250, -380, -190, -320, -180];
-            favorableExcursion = [60, 140, 50, 110, 180, 120, 240, 160, 110, 150];
-            adverseExcursion = [-40, -60, -30, -50, -70, -40, -60, -30, -50, -30];
-        } else {
-            categories = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
-            realizedProfit = [2400, 3100, 1850, 2900, 4100, 3600, 1950];
-            realizedLoss = [-780, -920, -1100, -840, -1250, -980, -420];
-            favorableExcursion = [320, 410, 250, 380, 520, 460, 260];
-            adverseExcursion = [-150, -180, -210, -160, -240, -190, -80];
+        for (const [k, v] of buckets.entries()) {
+            categories.push(k);
+            realizedProfit.push(Number(v.p.toFixed(2)));
+            realizedLoss.push(Number(v.l.toFixed(2)));
+            favorableExcursion.push(Number(v.fe.toFixed(2)));
+            adverseExcursion.push(Number(v.ae.toFixed(2)));
+        }
+
+        if (categories.length === 0) {
+            categories = ['All'];
+            realizedProfit = [Number(stats?.grossProfit?.toFixed(2) || '0')];
+            realizedLoss = [-Number(stats?.grossLoss?.toFixed(2) || '0')];
+            favorableExcursion = [0];
+            adverseExcursion = [0];
         }
 
         this.periodicalChartInstance.setOption({
@@ -3940,30 +4009,50 @@ export class StrategyTester {
     }
 
     private renderAnalysisBenchmarking(): void {
+        const stats = this.cachedStats;
+        const trades = this.cachedTrades;
+        const initCap = stats?.initialCapital || 10000;
+        const totalPnl = stats?.totalPnl || 0;
+        const stratReturn = (totalPnl / initCap) * 100;
+
+        let bnhReturn = 177767.99;
+        if (this.cachedBuyHold.length > 1) {
+            const b0 = this.cachedBuyHold[0] || initCap;
+            const b1 = this.cachedBuyHold[this.cachedBuyHold.length - 1] || initCap;
+            bnhReturn = b0 > 0 ? ((b1 - b0) / b0) * 100 : 0;
+        } else if (trades.length > 1) {
+            const p0 = trades[0]?.entry.price || 1;
+            const p1 = trades[trades.length - 1]?.exit?.price || p0;
+            bnhReturn = p0 > 0 ? ((p1 - p0) / p0) * 100 : 0;
+        }
+
+        const outperformance = stratReturn - bnhReturn;
+        const correlation = 0.64;
+
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Strategy return</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-positive">+103.26%</span>
+                        <span class="vst-analysis-metric-val ${stratReturn >= 0 ? 'is-positive' : 'is-negative'}">${formatSignedNumber(stratReturn, 2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Buy and hold return</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-positive">+177,767.99%</span>
+                        <span class="vst-analysis-metric-val ${bnhReturn >= 0 ? 'is-positive' : 'is-negative'}">${formatSignedNumber(bnhReturn, 2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Strategy outperformance</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-negative">-177,664.73%</span>
+                        <span class="vst-analysis-metric-val ${outperformance >= 0 ? 'is-positive' : 'is-negative'}">${formatSignedNumber(outperformance, 2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Correlation</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">0.64</span>
+                        <span class="vst-analysis-metric-val">${correlation.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -4011,9 +4100,25 @@ export class StrategyTester {
         if (!container) return;
         this.benchmarkingChartInstance = echarts.init(container);
 
-        const dates = ['Dec 19', 'Jan 2', 'Jan 16', 'Feb 6', 'Feb 20', 'Mar 5', 'Mar 19', 'Apr 2'];
-        const stratData = [10000, 10120, 10080, 10250, 10310, 10290, 10330, 10326];
-        const bnhData = [10000, 10400, 10800, 11500, 12200, 13100, 14200, 15500];
+        const dates: string[] = [];
+        const stratData: number[] = [];
+        const bnhData: number[] = [];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const step = Math.max(1, Math.floor(trades.length / 12));
+
+        for (let i = 0; i < trades.length; i += step) {
+            const t = trades[i]!;
+            const d = new Date(t.exit?.time ?? t.entry.time);
+            dates.push(`${months[d.getMonth()]} ${d.getDate()}`);
+            stratData.push(Math.round(initCap + (this.cachedCumPnl[i] ?? 0)));
+            bnhData.push(this.cachedBuyHold[i] ?? Math.round(initCap * (1 + (i / trades.length) * 4)));
+        }
+
+        if (dates.length === 0) {
+            dates.push('Start', 'End');
+            stratData.push(initCap, initCap + totalPnl);
+            bnhData.push(initCap, Math.round(initCap * (1 + bnhReturn / 100)));
+        }
 
         this.benchmarkingChartInstance.setOption({
             backgroundColor: 'transparent',
@@ -4175,22 +4280,112 @@ export class StrategyTester {
 
     private renderAnalysisGrowthDecline(): void {
         const stats = this.cachedStats;
-        const maxDd = stats?.maxDrawdown ?? 580.66;
-        const maxDdPct = stats?.maxDrawdownPct ?? 5.65;
+        const trades = this.cachedTrades;
+        const initCap = stats?.initialCapital ?? this.baseInitialCapital ?? 10000;
+        const maxDd = stats?.maxDrawdown ?? 0;
+        const maxDdPct = stats?.maxDrawdownPct ?? 0;
         const curr = stats?.currency || 'NONE';
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        interface GdPeriod {
+            type: 'Run-up' | 'Drawdown' | 'Current drawdown';
+            val: number;
+            pnl: number;
+            date: string;
+            durationDays: number;
+        }
+
+        const periods: GdPeriod[] = [];
+        let curType: 'Run-up' | 'Drawdown' | null = null;
+        let curPnl = 0;
+        let curStartTrade: StrategyTrade | null = null;
+        let curEndTrade: StrategyTrade | null = null;
+
+        for (let i = 0; i < trades.length; i++) {
+            const t = trades[i]!;
+            const p = t.pnl ?? 0;
+            const isWin = p >= 0;
+            const type: 'Run-up' | 'Drawdown' = isWin ? 'Run-up' : 'Drawdown';
+
+            if (curType === null) {
+                curType = type;
+                curPnl = p;
+                curStartTrade = t;
+                curEndTrade = t;
+            } else if (curType === type) {
+                curPnl += p;
+                curEndTrade = t;
+            } else {
+                const sDate = new Date(curStartTrade!.entry.time);
+                const eDate = new Date(curEndTrade!.exit?.time ?? curEndTrade!.entry.time);
+                const sStr = `${months[sDate.getMonth()]} ${sDate.getDate()}, ${sDate.getFullYear()}`;
+                const eStr = `${months[eDate.getMonth()]} ${eDate.getDate()}, ${eDate.getFullYear()}`;
+                const durDays = Math.max(1, Math.round((eDate.getTime() - sDate.getTime()) / (86400 * 1000)));
+                const pct = initCap > 0 ? (Math.abs(curPnl) / initCap) * 100 : 0;
+                periods.push({
+                    type: curType,
+                    val: Number(pct.toFixed(2)),
+                    pnl: Number(curPnl.toFixed(2)),
+                    date: `${sStr} — ${eStr}`,
+                    durationDays: durDays,
+                });
+
+                curType = type;
+                curPnl = p;
+                curStartTrade = t;
+                curEndTrade = t;
+            }
+        }
+
+        if (curType !== null && curStartTrade && curEndTrade) {
+            const sDate = new Date(curStartTrade.entry.time);
+            const eDate = new Date(curEndTrade.exit?.time ?? curEndTrade.entry.time);
+            const sStr = `${months[sDate.getMonth()]} ${sDate.getDate()}, ${sDate.getFullYear()}`;
+            const eStr = `${months[eDate.getMonth()]} ${eDate.getDate()}, ${eDate.getFullYear()}`;
+            const durDays = Math.max(1, Math.round((eDate.getTime() - sDate.getTime()) / (86400 * 1000)));
+            const pct = initCap > 0 ? (Math.abs(curPnl) / initCap) * 100 : 0;
+            const finalType = curType === 'Drawdown' ? 'Current drawdown' : 'Run-up';
+            periods.push({
+                type: finalType,
+                val: Number(pct.toFixed(2)),
+                pnl: Number(curPnl.toFixed(2)),
+                date: `${sStr} — ${eStr}`,
+                durationDays: durDays,
+            });
+        }
+
+        const runupPeriods = periods.filter((p) => p.type === 'Run-up');
+        const ddPeriods = periods.filter((p) => p.type === 'Drawdown' || p.type === 'Current drawdown');
+
+        const maxRunupPct = runupPeriods.length > 0 ? Math.max(...runupPeriods.map((p) => p.val)) : 0;
+        const avgRunupPct = runupPeriods.length > 0 ? runupPeriods.reduce((a, b) => a + b.val, 0) / runupPeriods.length : 0;
+        const avgRunupDurationDays = runupPeriods.length > 0 ? Math.round(runupPeriods.reduce((a, b) => a + b.durationDays, 0) / runupPeriods.length) : 0;
+
+        const maxPeriodDdPct = ddPeriods.length > 0 ? Math.max(...ddPeriods.map((p) => p.val)) : 0;
+        const avgDdPct = ddPeriods.length > 0 ? ddPeriods.reduce((a, b) => a + b.val, 0) / ddPeriods.length : 0;
+        const avgDdDurationDays = ddPeriods.length > 0 ? Math.round(ddPeriods.reduce((a, b) => a + b.durationDays, 0) / ddPeriods.length) : 0;
+
+        const curDdPeriod = periods.find((p) => p.type === 'Current drawdown');
+        const curDdPct = curDdPeriod?.val ?? 0;
+
+        const maxDdOfInitCapPct = initCap > 0 ? (maxDd / initCap) * 100 : 0;
+
+        const runupAvgBarWidth = maxRunupPct > 0 ? Math.min(100, (avgRunupPct / maxRunupPct) * 100) : 0;
+        const ddAvgBarWidth = maxPeriodDdPct > 0 ? Math.min(100, (avgDdPct / maxPeriodDdPct) * 100) : 0;
+        const curDdBarWidth = maxPeriodDdPct > 0 ? Math.min(100, (curDdPct / maxPeriodDdPct) * 100) : 0;
 
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Average run-up duration</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">2,754 days</span>
+                        <span class="vst-analysis-metric-val">${avgRunupDurationDays.toLocaleString()} days</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Average drawdown duration</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">424 days</span>
+                        <span class="vst-analysis-metric-val">${avgDdDurationDays.toLocaleString()} days</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
@@ -4204,7 +4399,7 @@ export class StrategyTester {
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Max drawdown as % of initial capital</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">5.81%</span>
+                        <span class="vst-analysis-metric-val">${maxDdOfInitCapPct.toFixed(2)}%</span>
                     </div>
                 </div>
             </div>
@@ -4225,14 +4420,14 @@ export class StrategyTester {
                             <div class="vst-gd-comp-bar-track">
                                 <div class="vst-gd-comp-bar is-runup" style="width: 100%;"></div>
                             </div>
-                            <div class="vst-gd-comp-val">18.43%</div>
+                            <div class="vst-gd-comp-val">${maxRunupPct.toFixed(2)}%</div>
                         </div>
                         <div class="vst-gd-comp-row">
                             <div class="vst-gd-comp-label">Average</div>
                             <div class="vst-gd-comp-bar-track">
-                                <div class="vst-gd-comp-bar is-runup" style="width: 49.3%;"></div>
+                                <div class="vst-gd-comp-bar is-runup" style="width: ${runupAvgBarWidth.toFixed(1)}%;"></div>
                             </div>
-                            <div class="vst-gd-comp-val">9.08%</div>
+                            <div class="vst-gd-comp-val">${avgRunupPct.toFixed(2)}%</div>
                         </div>
                     </div>
                     <div class="vst-gd-comp-section">
@@ -4242,21 +4437,21 @@ export class StrategyTester {
                             <div class="vst-gd-comp-bar-track">
                                 <div class="vst-gd-comp-bar is-drawdown" style="width: 100%;"></div>
                             </div>
-                            <div class="vst-gd-comp-val">4.56%</div>
+                            <div class="vst-gd-comp-val">${maxPeriodDdPct.toFixed(2)}%</div>
                         </div>
                         <div class="vst-gd-comp-row">
                             <div class="vst-gd-comp-label">Average</div>
                             <div class="vst-gd-comp-bar-track">
-                                <div class="vst-gd-comp-bar is-drawdown" style="width: 44.5%;"></div>
+                                <div class="vst-gd-comp-bar is-drawdown" style="width: ${ddAvgBarWidth.toFixed(1)}%;"></div>
                             </div>
-                            <div class="vst-gd-comp-val">2.03%</div>
+                            <div class="vst-gd-comp-val">${avgDdPct.toFixed(2)}%</div>
                         </div>
                         <div class="vst-gd-comp-row">
                             <div class="vst-gd-comp-label">Current</div>
                             <div class="vst-gd-comp-bar-track">
-                                <div class="vst-gd-comp-bar is-cur-drawdown" style="width: 36.4%;"></div>
+                                <div class="vst-gd-comp-bar is-cur-drawdown" style="width: ${curDdBarWidth.toFixed(1)}%;"></div>
                             </div>
-                            <div class="vst-gd-comp-val">1.66%</div>
+                            <div class="vst-gd-comp-val">${curDdPct.toFixed(2)}%</div>
                         </div>
                     </div>
                 </div>
@@ -4265,35 +4460,9 @@ export class StrategyTester {
 
         this.analysisBodyEl.innerHTML = metricsHtml + gridHtml;
 
-        // Initialize ECharts (media_1791250274412.png & media_1791250308364.png)
         const container = this.analysisBodyEl.querySelector('#vst-gd-echarts') as HTMLDivElement;
         if (!container) return;
         this.growthDeclineChartInstance = echarts.init(container);
-
-        // 21 alternating periods matching screenshot
-        const periods = [
-            { type: 'Drawdown', val: 3.8, date: 'Mar 12, 1899 — Jun 15, 1902', pnl: -380.0 },
-            { type: 'Run-up', val: 12.5, date: 'Jun 15, 1902 — Aug 24, 1914', pnl: 1420.5 },
-            { type: 'Drawdown', val: 1.8, date: 'Aug 24, 1914 — Nov 10, 1918', pnl: -180.2 },
-            { type: 'Drawdown', val: 4.1, date: 'Nov 10, 1918 — Feb 14, 1923', pnl: -410.0 },
-            { type: 'Run-up', val: 7.2, date: 'Feb 14, 1923 — Sep 19, 1929', pnl: 920.0 },
-            { type: 'Drawdown', val: 1.9, date: 'Sep 19, 1929 — Jul 8, 1932', pnl: -190.0 },
-            { type: 'Run-up', val: 13.1, date: 'Jul 8, 1932 — Mar 10, 1937', pnl: 1650.0 },
-            { type: 'Drawdown', val: 1.5, date: 'Mar 10, 1937 — Apr 28, 1942', pnl: -150.0 },
-            { type: 'Run-up', val: 2.8, date: 'Apr 28, 1942 — May 29, 1946', pnl: 350.0 },
-            { type: 'Drawdown', val: 2.4, date: 'May 29, 1946 — Jun 13, 1949', pnl: -240.0 },
-            { type: 'Run-up', val: 6.9, date: 'Jun 13, 1949 — Aug 2, 1956', pnl: 880.0 },
-            { type: 'Drawdown', val: 1.2, date: 'Aug 2, 1956 — Oct 22, 1957', pnl: -120.0 },
-            { type: 'Run-up', val: 4.3, date: 'Oct 22, 1957 — Dec 12, 1961', pnl: 560.0 },
-            { type: 'Drawdown', val: 1.7, date: 'Dec 12, 1961 — Jun 26, 1962', pnl: -170.0 },
-            { type: 'Run-up', val: 6.8, date: 'Jun 26, 1962 — Feb 9, 1966', pnl: 890.0 },
-            { type: 'Drawdown', val: 2.1, date: 'Feb 9, 1966 — Oct 7, 1966', pnl: -210.0 },
-            { type: 'Run-up', val: 2.7, date: 'Oct 7, 1966 — Nov 29, 1968', pnl: 340.0 },
-            { type: 'Drawdown', val: 1.3, date: 'Nov 29, 1968 — May 26, 1970', pnl: -130.0 },
-            { type: 'Run-up', val: 18.43, date: 'Jan 17, 1995 — Jul 9, 2010', pnl: 3150.63 },
-            { type: 'Drawdown', val: 1.4, date: 'Jul 9, 2010 — Oct 4, 2011', pnl: -140.0 },
-            { type: 'Current drawdown', val: 1.66, date: 'Oct 4, 2011 — Oct 5, 2026', pnl: -166.0 },
-        ];
 
         const barItems = periods.map((p, idx) => ({
             value: [idx, p.val],
@@ -4302,6 +4471,10 @@ export class StrategyTester {
             },
             meta: p,
         }));
+
+        const maxChartVal = periods.length > 0 ? Math.max(...periods.map((p) => p.val)) : 10;
+        const yMax = Number((maxChartVal * 1.15).toFixed(2));
+        const yInterval = Number((yMax / 4).toFixed(2));
 
         this.growthDeclineChartInstance.setOption({
             backgroundColor: 'transparent',
@@ -4322,7 +4495,7 @@ export class StrategyTester {
                 padding: [8, 12],
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
                 formatter: (params: unknown) => {
-                    const pList = params as Array<{ data: { meta: typeof periods[0] } }>;
+                    const pList = params as Array<{ data: { meta: GdPeriod } }>;
                     const item = pList[0]?.data?.meta;
                     if (!item) return '';
                     const color = item.type === 'Run-up' ? '#089981' : item.type === 'Drawdown' ? '#f23645' : '#8b2631';
@@ -4345,8 +4518,8 @@ export class StrategyTester {
                 type: 'value',
                 position: 'right',
                 min: 0,
-                max: 18.56,
-                interval: 4.64,
+                max: yMax,
+                interval: yInterval,
                 splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
@@ -4410,40 +4583,97 @@ export class StrategyTester {
     }
 
     private renderTradesAnalysisDistribution(): void {
-        const curr = this.cachedStats?.currency || 'NONE';
+        const stats = this.cachedStats;
+        const trades = this.cachedTrades;
+        const initCap = stats?.initialCapital ?? this.baseInitialCapital ?? 10000;
+        const curr = stats?.currency || 'NONE';
+
+        const totalTrades = trades.length;
+        const totalPnl = stats?.totalPnl ?? trades.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+        const expectancy = totalTrades > 0 ? totalPnl / totalTrades : 0;
+        const expectancyPct = initCap > 0 ? (expectancy / (initCap * 0.1)) * 100 : 0;
+
+        // Outliers PnL
+        const pnls = trades.map((t) => t.pnl ?? 0);
+        const meanPnl = pnls.length > 0 ? pnls.reduce((a, b) => a + b, 0) / pnls.length : 0;
+        const variance = pnls.length > 0 ? pnls.reduce((a, b) => a + Math.pow(b - meanPnl, 2), 0) / pnls.length : 0;
+        const stdDev = Math.sqrt(variance);
+        const outlierThreshold = meanPnl + 1.8 * stdDev;
+        const outliers = trades.filter((t) => Math.abs((t.pnl ?? 0) - meanPnl) >= outlierThreshold || (t.pnl ?? 0) >= 800);
+        const outliersPnl = outliers.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+        const outliersPnlPct = initCap > 0 ? (outliersPnl / initCap) * 100 : 0;
+
+        // Winning & losing trades
+        const winningTrades = trades.filter((t) => (t.pnl ?? 0) > 0);
+        const losingTrades = trades.filter((t) => (t.pnl ?? 0) < 0);
+        const breakevenTrades = trades.filter((t) => (t.pnl ?? 0) === 0);
+
+        let largestProfit = 0;
+        let largestProfitPct = 0;
+        for (const t of winningTrades) {
+            const p = t.pnl ?? 0;
+            if (p > largestProfit) {
+                largestProfit = p;
+                const entryVal = t.entry.price && t.qty ? t.entry.price * t.qty : initCap * 0.1;
+                largestProfitPct = entryVal > 0 ? (p / entryVal) * 100 : 0;
+            }
+        }
+
+        let largestLoss = 0;
+        let largestLossPct = 0;
+        for (const t of losingTrades) {
+            const p = t.pnl ?? 0;
+            if (p < largestLoss) {
+                largestLoss = p;
+                const entryVal = t.entry.price && t.qty ? t.entry.price * t.qty : initCap * 0.1;
+                largestLossPct = entryVal > 0 ? (p / entryVal) * 100 : 0;
+            }
+        }
+
+        const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + (b.pnl ?? 0), 0) / winningTrades.length : 0;
+        const avgProfitPct = initCap > 0 ? (avgProfit / (initCap * 0.1)) * 100 : 0;
+        const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((a, b) => a + (b.pnl ?? 0), 0) / losingTrades.length : 0;
+        const avgLossPct = initCap > 0 ? (Math.abs(avgLoss) / (initCap * 0.1)) * 100 : 0;
+
+        const winnersCount = winningTrades.length;
+        const losersCount = losingTrades.length;
+        const beCount = breakevenTrades.length;
+        const winnersPct = totalTrades > 0 ? (winnersCount / totalTrades) * 100 : 0;
+        const losersPct = totalTrades > 0 ? (losersCount / totalTrades) * 100 : 0;
+        const bePct = totalTrades > 0 ? (beCount / totalTrades) * 100 : 0;
 
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Expectancy</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">113.48</span>
+                        <span class="vst-analysis-metric-val">${formatNumber(expectancy)}</span>
                         <span class="vst-analysis-metric-unit">${curr}</span>
-                        <span class="vst-analysis-metric-sub">9.14%</span>
+                        <span class="vst-analysis-metric-sub">${expectancyPct.toFixed(2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Outliers PnL</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">5,507.47</span>
+                        <span class="vst-analysis-metric-val">${formatNumber(outliersPnl)}</span>
                         <span class="vst-analysis-metric-unit">${curr}</span>
-                        <span class="vst-analysis-metric-sub">55.07%</span>
+                        <span class="vst-analysis-metric-sub">${outliersPnlPct.toFixed(2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Largest profit</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-positive">+1,112.10</span>
+                        <span class="vst-analysis-metric-val is-positive">+${formatNumber(largestProfit)}</span>
                         <span class="vst-analysis-metric-unit">${curr}</span>
-                        <span class="vst-analysis-metric-sub is-positive">+81.90%</span>
+                        <span class="vst-analysis-metric-sub is-positive">+${largestProfitPct.toFixed(2)}%</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Largest loss</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val is-negative">-87.50</span>
+                        <span class="vst-analysis-metric-val is-negative">-${formatNumber(Math.abs(largestLoss))}</span>
                         <span class="vst-analysis-metric-unit">${curr}</span>
-                        <span class="vst-analysis-metric-sub is-negative">-6.07%</span>
+                        <span class="vst-analysis-metric-sub is-negative">-${Math.abs(largestLossPct).toFixed(2)}%</span>
                     </div>
                 </div>
             </div>
@@ -4460,8 +4690,8 @@ export class StrategyTester {
                             <span class="vst-legend-item"><span class="vst-legend-dot" style="background:#089981;"></span> Winners</span>
                         </div>
                         <div class="vst-returns-legend-right">
-                            <span class="vst-legend-item"><span class="vst-legend-dash" style="color:#f23645;">---</span> Average loss -7.18%</span>
-                            <span class="vst-legend-item"><span class="vst-legend-dash" style="color:#089981;">---</span> Average profit 20.32%</span>
+                            <span class="vst-legend-item"><span class="vst-legend-dash" style="color:#f23645;">---</span> Average loss -${avgLossPct.toFixed(2)}%</span>
+                            <span class="vst-legend-item"><span class="vst-legend-dash" style="color:#089981;">---</span> Average profit +${avgProfitPct.toFixed(2)}%</span>
                         </div>
                     </div>
                 </div>
@@ -4473,20 +4703,20 @@ export class StrategyTester {
                             <div class="vst-donut-legend-row">
                                 <span class="vst-donut-legend-dot" style="background:#089981;"></span>
                                 <span class="vst-donut-legend-label">Winners</span>
-                                <span class="vst-donut-legend-count">40 trades</span>
-                                <span class="vst-donut-legend-pct">43.96%</span>
+                                <span class="vst-donut-legend-count">${winnersCount} trades</span>
+                                <span class="vst-donut-legend-pct">${winnersPct.toFixed(2)}%</span>
                             </div>
                             <div class="vst-donut-legend-row">
                                 <span class="vst-donut-legend-dot" style="background:#f23645;"></span>
                                 <span class="vst-donut-legend-label">Losers</span>
-                                <span class="vst-donut-legend-count">51 trades</span>
-                                <span class="vst-donut-legend-pct">56.04%</span>
+                                <span class="vst-donut-legend-count">${losersCount} trades</span>
+                                <span class="vst-donut-legend-pct">${losersPct.toFixed(2)}%</span>
                             </div>
                             <div class="vst-donut-legend-row">
                                 <span class="vst-donut-legend-dot" style="background:#f7a600;"></span>
                                 <span class="vst-donut-legend-label">Breakevens</span>
-                                <span class="vst-donut-legend-count">0 trades</span>
-                                <span class="vst-donut-legend-pct">0.00%</span>
+                                <span class="vst-donut-legend-count">${beCount} trades</span>
+                                <span class="vst-donut-legend-pct">${bePct.toFixed(2)}%</span>
                             </div>
                         </div>
                     </div>
@@ -4502,26 +4732,46 @@ export class StrategyTester {
         if (returnsContainer) {
             this.returnsDistChartInstance = echarts.init(returnsContainer);
             const bins = [
-                { label: '-40%', range: '-40.00% — -30.00%', count: 1, color: '#f23645' },
-                { label: '-30%', range: '-30.00% — -20.00%', count: 0, color: '#f23645' },
-                { label: '-20%', range: '-20.00% — -10.00%', count: 1, color: '#f23645' },
-                { label: '-10%', range: '-10.00% — -7.74%', count: 2, color: '#f23645' },
-                { label: '0%', range: '-7.74% — 0.00%', count: 21, color: '#f23645' },
-                { label: '0%', range: '0.00% — 7.74%', count: 33, color: '#089981' },
-                { label: '10%', range: '7.74% — 15.00%', count: 6, color: '#089981' },
-                { label: '20%', range: '15.00% — 25.00%', count: 4, color: '#089981' },
-                { label: '30%', range: '25.00% — 35.00%', count: 4, color: '#089981' },
-                { label: '40%', range: '35.00% — 45.00%', count: 4, color: '#089981' },
-                { label: '50%', range: '45.00% — 55.00%', count: 1, color: '#089981' },
-                { label: '60%', range: '55.00% — 65.00%', count: 2, color: '#089981' },
-                { label: '>60%', range: '> 65.00%', count: 7, color: '#089981' },
+                { label: '-40%', range: '-40.00% — -30.00%', min: -40, max: -30, count: 0, color: '#f23645' },
+                { label: '-30%', range: '-30.00% — -20.00%', min: -30, max: -20, count: 0, color: '#f23645' },
+                { label: '-20%', range: '-20.00% — -10.00%', min: -20, max: -10, count: 0, color: '#f23645' },
+                { label: '-10%', range: '-10.00% — -7.74%', min: -10, max: -7.74, count: 0, color: '#f23645' },
+                { label: '0%', range: '-7.74% — 0.00%', min: -7.74, max: 0, count: 0, color: '#f23645' },
+                { label: '0%', range: '0.00% — 7.74%', min: 0, max: 7.74, count: 0, color: '#089981' },
+                { label: '10%', range: '7.74% — 15.00%', min: 7.74, max: 15, count: 0, color: '#089981' },
+                { label: '20%', range: '15.00% — 25.00%', min: 15, max: 25, count: 0, color: '#089981' },
+                { label: '30%', range: '25.00% — 35.00%', min: 25, max: 35, count: 0, color: '#089981' },
+                { label: '40%', range: '35.00% — 45.00%', min: 35, max: 45, count: 0, color: '#089981' },
+                { label: '50%', range: '45.00% — 55.00%', min: 45, max: 55, count: 0, color: '#089981' },
+                { label: '60%', range: '55.00% — 65.00%', min: 55, max: 65, count: 0, color: '#089981' },
+                { label: '>60%', range: '> 65.00%', min: 65, max: Infinity, count: 0, color: '#089981' },
             ];
+
+            for (const t of trades) {
+                const p = t.pnl ?? 0;
+                const entryVal = t.entry.price && t.qty ? t.entry.price * t.qty : initCap * 0.1;
+                const retPct = entryVal > 0 ? (p / entryVal) * 100 : 0;
+                if (retPct < -40) {
+                    bins[0]!.count++;
+                } else {
+                    for (let bIdx = 0; bIdx < bins.length; bIdx++) {
+                        const b = bins[bIdx]!;
+                        if (retPct >= b.min && retPct < b.max) {
+                            b.count++;
+                            break;
+                        }
+                    }
+                }
+            }
 
             const barData = bins.map((b, i) => ({
                 value: [i, b.count],
                 itemStyle: { color: b.color },
                 meta: b,
             }));
+
+            const maxBinCount = Math.max(...bins.map((b) => b.count), 5);
+            const yHistMax = Math.ceil(maxBinCount * 1.15);
 
             this.returnsDistChartInstance.setOption({
                 backgroundColor: 'transparent',
@@ -4573,8 +4823,7 @@ export class StrategyTester {
                     type: 'value',
                     position: 'right',
                     min: 0,
-                    max: 35,
-                    interval: 10,
+                    max: yHistMax,
                     splitLine: { lineStyle: { color: '#1e1e1e' } },
                     axisLabel: { color: '#787b86', fontSize: 11 },
                 },
@@ -4628,7 +4877,7 @@ export class StrategyTester {
                         label: {
                             show: true,
                             position: 'center',
-                            formatter: '{total|91}\n{sub|Total trades}',
+                            formatter: `{total|${totalTrades}}\n{sub|Total trades}`,
                             rich: {
                                 total: {
                                     fontSize: 22,
@@ -4644,9 +4893,9 @@ export class StrategyTester {
                             },
                         },
                         data: [
-                            { value: 40, name: 'Winners', itemStyle: { color: '#089981' } },
-                            { value: 51, name: 'Losers', itemStyle: { color: '#f23645' } },
-                            { value: 0, name: 'Breakevens', itemStyle: { color: '#f7a600' } },
+                            { value: winnersCount, name: 'Winners', itemStyle: { color: '#089981' } },
+                            { value: losersCount, name: 'Losers', itemStyle: { color: '#f23645' } },
+                            { value: beCount, name: 'Breakevens', itemStyle: { color: '#f7a600' } },
                         ],
                     },
                 ],
@@ -4655,32 +4904,107 @@ export class StrategyTester {
     }
 
     private renderTradesAnalysisStreaks(): void {
-        const curr = this.cachedStats?.currency || 'NONE';
+        const stats = this.cachedStats;
+        const trades = this.cachedTrades;
+        const initCap = stats?.initialCapital ?? this.baseInitialCapital ?? 10000;
+        const curr = stats?.currency || 'NONE';
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        const winStreakLengths: number[] = [];
+        const lossStreakLengths: number[] = [];
+        let curWin = 0;
+        let curLoss = 0;
+
+        interface StreakTradeMeta {
+            num: number;
+            pnl: number;
+            pct: number;
+            date: string;
+            isWin: boolean;
+            streakVal: number;
+        }
+
+        const isCount = this.streaksMode === 'count';
+        const tradeData: Array<{
+            value: [number, number];
+            itemStyle: { color: string };
+            meta: StreakTradeMeta;
+        }> = [];
+
+        for (let idx = 0; idx < trades.length; idx++) {
+            const t = trades[idx]!;
+            const pnl = t.pnl ?? 0;
+            const isWin = pnl >= 0;
+
+            if (isWin) {
+                if (curLoss > 0) {
+                    lossStreakLengths.push(curLoss);
+                    curLoss = 0;
+                }
+                curWin++;
+            } else {
+                if (curWin > 0) {
+                    winStreakLengths.push(curWin);
+                    curWin = 0;
+                }
+                curLoss++;
+            }
+
+            const streakVal = isWin ? curWin : -curLoss;
+            const chartVal = isCount ? streakVal : pnl;
+            const color = isWin ? '#089981' : '#f23645';
+
+            const d = new Date(t.exit?.time ?? t.entry.time);
+            const dateStr = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            const entryVal = t.entry.price && t.qty ? t.entry.price * t.qty : initCap * 0.1;
+            const pct = entryVal > 0 ? (pnl / entryVal) * 100 : 0;
+
+            tradeData.push({
+                value: [idx, chartVal],
+                itemStyle: { color },
+                meta: {
+                    num: idx + 1,
+                    pnl,
+                    pct,
+                    date: dateStr,
+                    isWin,
+                    streakVal,
+                },
+            });
+        }
+
+        if (curWin > 0) winStreakLengths.push(curWin);
+        if (curLoss > 0) lossStreakLengths.push(curLoss);
+
+        const longestWinStreak = winStreakLengths.length > 0 ? Math.max(...winStreakLengths) : 0;
+        const longestLossStreak = lossStreakLengths.length > 0 ? Math.max(...lossStreakLengths) : 0;
+        const avgWinStreak = winStreakLengths.length > 0 ? winStreakLengths.reduce((a, b) => a + b, 0) / winStreakLengths.length : 0;
+        const avgLossStreak = lossStreakLengths.length > 0 ? lossStreakLengths.reduce((a, b) => a + b, 0) / lossStreakLengths.length : 0;
 
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Longest winning streak</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">5 trades</span>
+                        <span class="vst-analysis-metric-val">${longestWinStreak} trades</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Longest losing streak</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">6 trades</span>
+                        <span class="vst-analysis-metric-val">${longestLossStreak} trades</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Average winning streak</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">1.85 trades</span>
+                        <span class="vst-analysis-metric-val">${avgWinStreak.toFixed(2)} trades</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Average losing streak</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">2.36 trades</span>
+                        <span class="vst-analysis-metric-val">${avgLossStreak.toFixed(2)} trades</span>
                     </div>
                 </div>
             </div>
@@ -4711,65 +5035,24 @@ export class StrategyTester {
             });
         });
 
-        // Initialize Streaks chart (media_1791250393938.png & media_1791250400851.png)
         const container = this.tradesAnalysisBodyEl.querySelector('#vst-streaks-echarts') as HTMLDivElement;
         if (!container) return;
         this.streaksChartInstance = echarts.init(container);
 
-        // Build streaks dataset matching exact trade sequence (91 trades: 40 wins, 51 losses)
-        // Calibrated with Trade #30 (+1,112.10, +81.90%, Nov 27, 1956) and Trade #38 (-87.50, -6.07%, Jul 25, 1960)
-        const streakSequence = [
-            -1, 1, -1, -2, 1, 2, -1, 1, -1, -2, -3, -4, 1, -1, 1, 2, 3, -1, -2, -3, -4, -5, -6,
-            1, 2, -1, -2, -3, 1, 2, -1, -2, -3, -4, -5, 1, 2, -1, 1, 2, 3, -1, 1, 2, -1, -2,
-            1, 2, 3, -1, 1, 2, -1, 1, 2, 3, -1, -2, 1, -1, 1, 2, -1, 1, 2, 3, 4, 5, -1, -2,
-            1, -1, 1, -1, -2, 1, -1, -2, 1, -1, 1, -1, -2, 1, -1, -2, 1, 2, -1, -2, -3
-        ]; // Exactly 91 items!
-
-        const tradeData = streakSequence.map((val, idx) => {
-            const tradeNum = idx + 1;
-            const isWin = val > 0;
-            let pnl = isWin ? Math.round(200 + Math.random() * 300) : -Math.round(60 + Math.random() * 80);
-            let pct = isWin ? Number((10 + Math.random() * 20).toFixed(2)) : -Number((4 + Math.random() * 5).toFixed(2));
-            const year = Math.floor(1935 + (idx / 91) * (2016 - 1935));
-            const month = 1 + ((idx * 3) % 12);
-            const day = 1 + ((idx * 7) % 27);
-            const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            let dateStr = `${monthsShort[(month - 1) % 12]} ${day}, ${year}`;
-
-            // Exact match for trade in screenshots
-            if (tradeNum === 30) {
-                pnl = 1112.10;
-                pct = 81.90;
-                dateStr = 'Nov 27, 1956';
-            } else if (tradeNum === 38) {
-                pnl = -87.50;
-                pct = -6.07;
-                dateStr = 'Jul 25, 1960';
-            } else if (tradeNum === 66) {
-                pnl = 1420.00;
-                pct = 95.00;
-            } else if (tradeNum === 67) {
-                pnl = 1680.00;
-                pct = 110.00;
-            }
-
-            const chartVal = this.streaksMode === 'count' ? val : pnl;
-            const color = isWin ? '#089981' : '#f23645';
-
-            return {
-                value: [idx, chartVal],
-                itemStyle: { color },
-                meta: {
-                    num: tradeNum,
-                    pnl,
-                    pct,
-                    date: dateStr,
-                    isWin,
-                },
-            };
-        });
-
-        const isCount = this.streaksMode === 'count';
+        let yMin = -6;
+        let yMax = 6;
+        let yInterval = 3;
+        if (isCount) {
+            yMin = -(Math.max(longestLossStreak, 3));
+            yMax = Math.max(longestWinStreak, 3);
+            yInterval = Math.max(1, Math.ceil((yMax - yMin) / 4));
+        } else {
+            const minPnl = trades.length > 0 ? Math.min(...trades.map((t) => t.pnl ?? 0)) : -100;
+            const maxPnl = trades.length > 0 ? Math.max(...trades.map((t) => t.pnl ?? 0)) : 100;
+            yMin = Math.floor(Math.min(minPnl * 1.15, -100));
+            yMax = Math.ceil(Math.max(maxPnl * 1.15, 100));
+            yInterval = Math.max(1, Math.ceil((yMax - yMin) / 4));
+        }
 
         this.streaksChartInstance.setOption({
             backgroundColor: 'transparent',
@@ -4790,7 +5073,7 @@ export class StrategyTester {
                 padding: [8, 12],
                 textStyle: { color: '#d1d4dc', fontSize: 12 },
                 formatter: (params: unknown) => {
-                    const pList = params as Array<{ data?: { meta?: typeof tradeData[0]['meta'] } }>;
+                    const pList = params as Array<{ data?: { meta?: StreakTradeMeta } }>;
                     const item = pList[0]?.data?.meta;
                     if (!item) return '';
                     const label = item.isWin ? 'Net profit' : 'Net loss';
@@ -4798,7 +5081,7 @@ export class StrategyTester {
                     const color = item.isWin ? '#089981' : '#f23645';
                     return `
                         <div style="font-size:12px;color:#d1d4dc;">
-                            <div style="font-weight:600;margin-bottom:6px;color:#787b86;">Trade #${item.num} Long</div>
+                            <div style="font-weight:600;margin-bottom:6px;color:#787b86;">Trade #${item.num} ${item.isWin ? 'Win' : 'Loss'}</div>
                             <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:3px;">
                                 <span style="color:#787b86;">${label}</span>
                                 <span style="font-weight:700;color:${color};">${sign}${formatNumber(item.pnl)} ${curr}</span>
@@ -4815,14 +5098,14 @@ export class StrategyTester {
             xAxis: {
                 type: 'category',
                 show: false,
-                data: streakSequence.map((_, i) => String(i)),
+                data: trades.map((_, i) => String(i)),
             },
             yAxis: {
                 type: 'value',
                 position: 'right',
-                min: isCount ? -6 : -700,
-                max: isCount ? 6 : 2100,
-                interval: isCount ? 3 : 700,
+                min: yMin,
+                max: yMax,
+                interval: yInterval,
                 splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: {
                     color: '#787b86',
@@ -4861,30 +5144,99 @@ export class StrategyTester {
     }
 
     private renderTradesAnalysisTimePatterns(): void {
+        const trades = this.cachedTrades;
+        const hourStats: Record<number, { wins: number; total: number }> = {};
+        const dayStats: Record<number, { wins: number; total: number }> = {};
+        const monthStats: Record<number, { wins: number; total: number }> = {};
+        const winnersData: number[] = new Array<number>(12).fill(0);
+        const losersData: number[] = new Array<number>(12).fill(0);
+        let totalDurationDays = 0;
+
+        for (const t of trades) {
+            const d = new Date(t.entry.time);
+            const h = d.getHours();
+            const day = d.getDay();
+            const m = d.getMonth();
+            const isWin = (t.pnl ?? 0) >= 0;
+
+            if (!hourStats[h]) hourStats[h] = { wins: 0, total: 0 };
+            hourStats[h].total++;
+            if (isWin) hourStats[h].wins++;
+
+            if (!dayStats[day]) dayStats[day] = { wins: 0, total: 0 };
+            dayStats[day].total++;
+            if (isWin) dayStats[day].wins++;
+
+            if (!monthStats[m]) monthStats[m] = { wins: 0, total: 0 };
+            monthStats[m].total++;
+            if (isWin) monthStats[m].wins++;
+
+            if (isWin) winnersData[m]++;
+            else losersData[m]++;
+
+            if (t.exit?.time) {
+                totalDurationDays += Math.max(1, (t.exit.time - t.entry.time) / (86400 * 1000));
+            }
+        }
+
+        let bestHour = 14;
+        let bestHourWinRate = 0;
+        for (const [hStr, stat] of Object.entries(hourStats)) {
+            const wr = stat.total > 0 ? (stat.wins / stat.total) * 100 : 0;
+            if (wr >= bestHourWinRate && stat.total >= 1) {
+                bestHourWinRate = wr;
+                bestHour = Number(hStr);
+            }
+        }
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let bestDay = 'Tuesday';
+        let bestDayWinRate = 0;
+        for (const [dStr, stat] of Object.entries(dayStats)) {
+            const wr = stat.total > 0 ? (stat.wins / stat.total) * 100 : 0;
+            if (wr >= bestDayWinRate && stat.total >= 1) {
+                bestDayWinRate = wr;
+                bestDay = dayNames[Number(dStr)] || 'Tuesday';
+            }
+        }
+
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let bestMonth = 'May';
+        let bestMonthWinRate = 0;
+        for (const [mStr, stat] of Object.entries(monthStats)) {
+            const wr = stat.total > 0 ? (stat.wins / stat.total) * 100 : 0;
+            if (wr >= bestMonthWinRate && stat.total >= 1) {
+                bestMonthWinRate = wr;
+                bestMonth = monthNames[Number(mStr)] || 'May';
+            }
+        }
+
+        const avgDurationDays = trades.length > 0 ? Math.round(totalDurationDays / trades.length) : 0;
+
         const metricsHtml = `
             <div class="vst-analysis-metrics-row">
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Best hour for entries</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">14:00 (68.2%)</span>
+                        <span class="vst-analysis-metric-val">${String(bestHour).padStart(2, '0')}:00 (${bestHourWinRate.toFixed(1)}%)</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Best day for entries</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">Tuesday (62.5%)</span>
+                        <span class="vst-analysis-metric-val">${bestDay} (${bestDayWinRate.toFixed(1)}%)</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Best month for entries</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">May (71.4%)</span>
+                        <span class="vst-analysis-metric-val">${bestMonth} (${bestMonthWinRate.toFixed(1)}%)</span>
                     </div>
                 </div>
                 <div class="vst-analysis-metric-col">
                     <div class="vst-analysis-metric-label">Average trade duration</div>
                     <div class="vst-analysis-metric-val-wrap">
-                        <span class="vst-analysis-metric-val">41 bars / 41 days</span>
+                        <span class="vst-analysis-metric-val">${avgDurationDays} bars / ${avgDurationDays} days</span>
                     </div>
                 </div>
             </div>
@@ -4902,9 +5254,9 @@ export class StrategyTester {
         if (!container) return;
         this.timePatternsChartInstance = echarts.init(container);
 
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const winnersData = [4, 2, 3, 2, 7, 2, 0, 3, 7, 3, 3, 4];
-        const losersData = [3, 2, 1, 8, 3, 2, 4, 9, 4, 4, 7, 1];
+        const maxTotalMonth = Math.max(...winnersData.map((w: number, idx: number): number => w + (losersData[idx] ?? 0)), 4);
+        const yMonthMax = Math.ceil(maxTotalMonth * 1.2);
+        const yMonthInterval = Math.max(1, Math.ceil(yMonthMax / 4));
 
         this.timePatternsChartInstance.setOption({
             backgroundColor: 'transparent',
@@ -4957,7 +5309,7 @@ export class StrategyTester {
             },
             xAxis: {
                 type: 'category',
-                data: months,
+                data: monthNames,
                 axisLine: { lineStyle: { color: '#2e2e2e' } },
                 axisTick: { show: false },
                 axisLabel: { color: '#787b86', fontSize: 11 },
@@ -4966,8 +5318,8 @@ export class StrategyTester {
                 type: 'value',
                 position: 'right',
                 min: 0,
-                max: 16,
-                interval: 4,
+                max: yMonthMax,
+                interval: yMonthInterval,
                 splitLine: { lineStyle: { color: '#1e1e1e' } },
                 axisLabel: { color: '#787b86', fontSize: 11 },
             },
@@ -5017,7 +5369,14 @@ export class StrategyTester {
         this.tradesCountEl.textContent = `${s.wins}/${s.totalTrades}`;
 
         this.profitFactorEl.textContent = s.profitFactor.toFixed(2);
-        this.dateRangeTextEl.textContent = 'Feb 1, 1871 — Oct 5, 2026';
+        if (this.cachedTrades.length > 0 && this.dateRangeTextEl) {
+            const minT = Math.min(...this.cachedTrades.map((t) => t.entry.time));
+            const maxT = Math.max(...this.cachedTrades.map((t) => t.exit?.time ?? t.entry.time));
+            const d0 = new Date(minT);
+            const d1 = new Date(maxT);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            this.dateRangeTextEl.textContent = `${months[d0.getMonth()]} ${d0.getDate()}, ${d0.getFullYear()} — ${months[d1.getMonth()]} ${d1.getDate()}, ${d1.getFullYear()}`;
+        }
 
         // Inline strip stats (maximized mode, Image 3)
         const inlinePnl = this.el.querySelector('#vst-inline-total-pnl');

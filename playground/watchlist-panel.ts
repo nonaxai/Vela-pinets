@@ -355,12 +355,27 @@ const CSS = `
 .vela-watchlist-last {
     color: var(--vela-fg-bright, #f0f3fa);
     font-weight: 500;
+    transition: color 200ms ease;
 }
 .vela-watchlist-up {
     color: #089981;
 }
 .vela-watchlist-down {
     color: #f23645;
+}
+.vela-watchlist-row.is-flash-up {
+    background: rgba(8, 153, 129, 0.16) !important;
+}
+.vela-watchlist-row.is-flash-down {
+    background: rgba(242, 54, 69, 0.16) !important;
+}
+.vela-watchlist-last.is-flash-up {
+    color: #089981 !important;
+    text-shadow: 0 0 4px rgba(8, 153, 129, 0.4);
+}
+.vela-watchlist-last.is-flash-down {
+    color: #f23645 !important;
+    text-shadow: 0 0 4px rgba(242, 54, 69, 0.4);
 }
 
 .vela-watchlist-del-btn {
@@ -597,6 +612,7 @@ export function mountWatchlistPanel(
 
                     const row = doc.createElement('div');
                     row.className = 'vela-watchlist-row' + activeClass;
+                    row.dataset.ticker = item.ticker;
                     row.innerHTML = `
                         <div class="vela-watchlist-sym-col">
                             <span class="vela-watchlist-badge ${badgeClass}">${badgeChar}</span>
@@ -606,8 +622,8 @@ export function mountWatchlistPanel(
                             </div>
                         </div>
                         <div class="vela-watchlist-val vela-watchlist-last">${formatPrice(item.lastPrice, item.precision)}</div>
-                        <div class="vela-watchlist-val ${valClass}">${formatChange(item.change, item.precision)}</div>
-                        <div class="vela-watchlist-val ${valClass}">${formatPct(item.changePct)}</div>
+                        <div class="vela-watchlist-val vela-watchlist-chg ${valClass}">${formatChange(item.change, item.precision)}</div>
+                        <div class="vela-watchlist-val vela-watchlist-pct ${valClass}">${formatPct(item.changePct)}</div>
                         <button class="vela-watchlist-del-btn" title="Remove">✕</button>
                     `;
 
@@ -730,8 +746,107 @@ export function mountWatchlistPanel(
         }
     }, 500);
 
+    // ── Live Binance WebSocket Stream (!miniTicker@arr) ──
+    let ws: WebSocket | null = null;
+    let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isDestroyed = false;
+
+    const connectLiveTicker = (): void => {
+        if (isDestroyed || typeof WebSocket === 'undefined') return;
+        try {
+            ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
+
+            ws.onmessage = (evt: MessageEvent<string>) => {
+                try {
+                    const data = JSON.parse(evt.data) as unknown;
+                    if (!Array.isArray(data)) return;
+                    for (const rawTick of data) {
+                        const tick = rawTick as { s?: string; c?: string; o?: string };
+                        const sym = tick.s;
+                        if (!sym) continue;
+                        const matching = items.find((i) => {
+                            const raw = i.ticker.replace(/^BINANCE:/i, '').toUpperCase();
+                            return raw === sym || i.displayTicker.toUpperCase() === sym;
+                        });
+                        if (!matching) continue;
+
+                        const newPrice = parseFloat(tick.c ?? '');
+                        const openPrice = parseFloat(tick.o ?? '');
+                        if (isNaN(newPrice) || isNaN(openPrice)) continue;
+
+                        const oldPrice = matching.lastPrice;
+                        const chg = newPrice - openPrice;
+                        const chgPct = openPrice > 0 ? (chg / openPrice) * 100 : 0;
+                        matching.lastPrice = newPrice;
+                        matching.change = chg;
+                        matching.changePct = chgPct;
+
+                        // In-place DOM update without re-rendering entire list
+                        const row = listContainer.querySelector<HTMLElement>(
+                            `.vela-watchlist-row[data-ticker="${matching.ticker}"]`,
+                        );
+                        if (row) {
+                            const lastEl = row.querySelector<HTMLElement>('.vela-watchlist-last');
+                            const chgEl = row.querySelector<HTMLElement>('.vela-watchlist-chg');
+                            const pctEl = row.querySelector<HTMLElement>('.vela-watchlist-pct');
+
+                            if (lastEl) lastEl.textContent = formatPrice(newPrice, matching.precision);
+                            const isUp = chg >= 0;
+                            const valClass = isUp ? 'vela-watchlist-up' : 'vela-watchlist-down';
+
+                            if (chgEl) {
+                                chgEl.textContent = formatChange(chg, matching.precision);
+                                chgEl.className = `vela-watchlist-val vela-watchlist-chg ${valClass}`;
+                            }
+                            if (pctEl) {
+                                pctEl.textContent = formatPct(chgPct);
+                                pctEl.className = `vela-watchlist-val vela-watchlist-pct ${valClass}`;
+                            }
+
+                            if (Math.abs(newPrice - oldPrice) > 1e-6 && lastEl) {
+                                const flashClass = newPrice > oldPrice ? 'is-flash-up' : 'is-flash-down';
+                                row.classList.remove('is-flash-up', 'is-flash-down');
+                                lastEl.classList.remove('is-flash-up', 'is-flash-down');
+                                row.classList.add(flashClass);
+                                lastEl.classList.add(flashClass);
+                                setTimeout(() => {
+                                    row.classList.remove(flashClass);
+                                    lastEl.classList.remove(flashClass);
+                                }, 600);
+                            }
+                        }
+                    }
+                } catch {
+                    // Ignore transient parse error
+                }
+            };
+
+            ws.onerror = () => {
+                ws?.close();
+            };
+
+            ws.onclose = () => {
+                if (isDestroyed) return;
+                ws = null;
+                wsReconnectTimer = setTimeout(connectLiveTicker, 3000);
+            };
+        } catch {
+            if (!isDestroyed) {
+                wsReconnectTimer = setTimeout(connectLiveTicker, 5000);
+            }
+        }
+    };
+
+    connectLiveTicker();
+
     return {
         destroy() {
+            isDestroyed = true;
+            if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
             clearInterval(syncInterval);
             doc.removeEventListener('click', onDocClick);
             closeMenu();
