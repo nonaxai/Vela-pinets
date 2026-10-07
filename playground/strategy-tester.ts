@@ -1,11 +1,18 @@
 import * as echarts from 'echarts';
 import type { Vela, IndicatorHandle } from '@luxalgo/vela';
-import type { EngineContextSnapshot, StrategyState, StrategyTrade } from '@luxalgo/vela/plugin';
+import type { EngineContextSnapshot, StrategyState, StrategyTrade, OHLCV } from '@luxalgo/vela/plugin';
 
 export interface StrategyTesterOptions {
     host: HTMLElement;
     getActiveChart: () => Vela | null;
     onStrategySelect?: (handle: IndicatorHandle) => void;
+}
+
+interface ChartWithOrchestrator {
+    orchestrator?: {
+        bars?: OHLCV[];
+        rawBars?: OHLCV[];
+    };
 }
 
 export interface BacktestSummaryStats {
@@ -38,7 +45,7 @@ function formatSignedNumber(val: number, decimals = 2): string {
 }
 
 /** Generates realistic demo backtest trades matching the user's reference screenshots */
-function generateReferenceData() {
+export function generateReferenceData(chartBars?: OHLCV[]) {
     const initialCapital = 10000;
     const totalTrades = 91;
     const wins = 40;
@@ -79,36 +86,56 @@ function generateReferenceData() {
 
     const timestamps: number[] = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const hasBars = Array.isArray(chartBars) && chartBars.length >= 20;
+    const p0 = hasBars ? chartBars[0]!.close : 100;
 
     let currentEquity = 0;
     for (let i = 0; i < totalTrades; i++) {
-        // Trade 0 in 1899, then gap to 1935-2016 matching TradingView screenshot Image 1 & 3
-        const year = i === 0 ? 1899 : Math.floor(1935 + ((i - 1) / (totalTrades - 2)) * (2016 - 1935));
-        const month = 1 + ((i * 3) % 12);
-        const day = 1 + ((i * 7) % 27);
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        timeline.push(dateStr);
-
         const pnl = calibratedPnls[i] ?? 0;
         currentEquity += pnl;
         cumPnlData.push(Number(currentEquity.toFixed(2)));
 
-        // Benchmark Buy and Hold curve with market cycle waves matching Image 5 (surging to 4,755,654.00)
-        const progress = i / (totalTrades - 1);
-        let bnHVal = initialCapital;
-        if (progress > 0.4) {
-            const expRise = Math.exp((progress - 0.4) * 1.66 * 6.164);
-            const cycleWave = Math.sin(progress * 18) * 0.15;
-            bnHVal = initialCapital * expRise * (1 + cycleWave);
-        }
-        if (i === totalTrades - 1) bnHVal = 4755654.0;
-        buyHoldData.push(Math.round(bnHVal));
+        let dateStr = '';
+        let entryDateStr = '';
+        let exitDateStr = '';
+        let entryTime = 0;
+        let exitTime = 0;
+        let refPrice = 100;
 
-        // Dates for trade
-        let entryDateStr = `${months[(month - 1) % 12]} ${Math.max(1, day - 5)}, ${year - 1}`;
-        let exitDateStr = `${months[(month - 1) % 12]} ${day}, ${year}`;
-        let entryTime = new Date(year - 1, (month - 1) % 12, Math.max(1, day - 5)).getTime();
-        let exitTime = new Date(year, (month - 1) % 12, day).getTime();
+        if (hasBars) {
+            const barIdx = Math.min(chartBars.length - 1, Math.floor((i / (totalTrades - 1)) * (chartBars.length - 1)));
+            const prevIdx = Math.max(0, barIdx - 1);
+            const bar = chartBars[barIdx]!;
+            const prevBar = chartBars[prevIdx]!;
+            exitTime = bar.time;
+            entryTime = prevBar.time;
+            const d = new Date(exitTime);
+            const ed = new Date(entryTime);
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            entryDateStr = `${months[ed.getMonth()]} ${ed.getDate()}, ${ed.getFullYear()}`;
+            exitDateStr = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            refPrice = bar.close;
+
+            const bnHVal = p0 > 0 ? initialCapital * ((bar.close - p0) / p0) : 0;
+            buyHoldData.push(Number(bnHVal.toFixed(2)));
+        } else {
+            const year = i === 0 ? 1899 : Math.floor(1935 + ((i - 1) / (totalTrades - 2)) * (2016 - 1935));
+            const month = 1 + ((i * 3) % 12);
+            const day = 1 + ((i * 7) % 27);
+            dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            entryDateStr = `${months[(month - 1) % 12]} ${Math.max(1, day - 5)}, ${year - 1}`;
+            exitDateStr = `${months[(month - 1) % 12]} ${day}, ${year}`;
+            entryTime = new Date(year - 1, (month - 1) % 12, Math.max(1, day - 5)).getTime();
+            exitTime = new Date(year, (month - 1) % 12, day).getTime();
+
+            const progress = i / (totalTrades - 1);
+            const wave = Math.sin(progress * Math.PI * 3.5) * 0.35 + Math.pow(progress, 1.2) * 1.15;
+            refPrice = Math.round(100 * (1 + wave));
+            const bnHVal = initialCapital * wave;
+            buyHoldData.push(Number(bnHVal.toFixed(2)));
+        }
+
+        timeline.push(dateStr);
 
         // Specific trades matching Image 4 & 5
         let runupVal = 0;
@@ -118,20 +145,24 @@ function generateReferenceData() {
 
         if (i === 0) {
             // Trade 1 (1899)
-            entryDateStr = 'Mar 12, 1899';
-            exitDateStr = 'Jun 15, 1902';
-            entryTime = new Date(1899, 2, 12).getTime();
-            exitTime = new Date(1902, 5, 15).getTime();
+            if (!hasBars) {
+                entryDateStr = 'Mar 12, 1899';
+                exitDateStr = 'Jun 15, 1902';
+                entryTime = new Date(1899, 2, 12).getTime();
+                exitTime = new Date(1902, 5, 15).getTime();
+            }
             drawdownVal = 580.66;
             drawdownPct = 5.65;
             runupVal = 35.0;
             runupPct = 0.35;
         } else if (i === 43) {
             // Trade at 1960-1971 (Image 5 exact match!)
-            entryDateStr = 'Dec 22, 1960';
-            exitDateStr = 'Nov 11, 1971';
-            entryTime = new Date(1960, 11, 22).getTime();
-            exitTime = new Date(1971, 10, 11).getTime();
+            if (!hasBars) {
+                entryDateStr = 'Dec 22, 1960';
+                exitDateStr = 'Nov 11, 1971';
+                entryTime = new Date(1960, 11, 22).getTime();
+                exitTime = new Date(1971, 10, 11).getTime();
+            }
             runupVal = 1063.63;
             runupPct = 7.25;
             drawdownVal = 86.45;
@@ -193,8 +224,8 @@ function generateReferenceData() {
             id: `trade_${i + 1}`,
             side: pnl >= 0 ? 'long' : 'short',
             qty: 1,
-            entry: { id: `entry_${i + 1}`, time: entryTime, price: 100 + i * 5 },
-            exit: { id: `exit_${i + 1}`, time: exitTime, price: 100 + i * 5 + (pnl >= 0 ? 10 : -5) },
+            entry: { id: `entry_${i + 1}`, time: entryTime, price: refPrice },
+            exit: { id: `exit_${i + 1}`, time: exitTime, price: refPrice + (pnl >= 0 ? 10 : -5) },
             open: false,
             pnl: Number(pnl.toFixed(2)),
             commission: 0.5,
@@ -3280,7 +3311,10 @@ export class StrategyTester {
             this.allRawTrades = trades;
             this.baseInitialCapital = strategy.initialCapital || 10000;
         } else {
-            const ref = generateReferenceData();
+            const chart = this.getActiveChart();
+            const orch = (chart as unknown as ChartWithOrchestrator | null)?.orchestrator;
+            const bars: OHLCV[] = orch?.bars ?? orch?.rawBars ?? [];
+            const ref = generateReferenceData(bars);
             this.allRawTrades = ref.trades;
             this.baseInitialCapital = ref.stats.initialCapital;
         }
@@ -3404,12 +3438,41 @@ export class StrategyTester {
         this.cachedTimeline = [];
         this.cachedTimestamps = [];
 
+        const chart = this.getActiveChart();
+        const orch = (chart as unknown as ChartWithOrchestrator | null)?.orchestrator;
+        const bars: OHLCV[] = orch?.bars ?? orch?.rawBars ?? [];
+
+        const getBarPriceAtTime = (time: number): number | null => {
+            if (!bars || bars.length === 0) return null;
+            let low = 0;
+            let high = bars.length - 1;
+            let best = bars[0]!;
+            while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                const b = bars[mid]!;
+                if (b.time <= time) {
+                    best = b;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            }
+            return best.close;
+        };
+
+        const firstTradeTime = trades[0]?.entry.time ?? (bars[0]?.time ?? 0);
+        const p0 = getBarPriceAtTime(firstTradeTime) ?? trades[0]?.entry.price ?? (bars[0]?.close ?? 1);
+
         for (let i = 0; i < trades.length; i++) {
             const t = trades[i]!;
             const p = t.pnl ?? 0;
             eq += p;
             this.cachedCumPnl.push(Number(eq.toFixed(2)));
-            this.cachedBuyHold.push(Math.round(initCap * (1 + (i / Math.max(1, trades.length - 1)) * 475)));
+
+            const exitTime = t.exit?.time ?? t.entry.time;
+            const currentPrice = getBarPriceAtTime(exitTime) ?? t.exit?.price ?? t.entry.price ?? p0;
+            const bnHPnl = p0 > 0 ? initCap * ((currentPrice - p0) / p0) : 0;
+            this.cachedBuyHold.push(Number(bnHPnl.toFixed(2)));
             this.cachedTradeBars.push({
                 value: [i, Number(p.toFixed(2))],
                 itemStyle: { color: p >= 0 ? 'rgba(8, 153, 129, 0.75)' : 'rgba(242, 54, 69, 0.75)' },
@@ -4021,11 +4084,10 @@ export class StrategyTester {
         const totalPnl = stats?.totalPnl || 0;
         const stratReturn = (totalPnl / initCap) * 100;
 
-        let bnhReturn = 177767.99;
-        if (this.cachedBuyHold.length > 1) {
-            const b0 = this.cachedBuyHold[0] || initCap;
-            const b1 = this.cachedBuyHold[this.cachedBuyHold.length - 1] || initCap;
-            bnhReturn = b0 > 0 ? ((b1 - b0) / b0) * 100 : 0;
+        let bnhReturn = 0;
+        if (this.cachedBuyHold.length > 0) {
+            const lastBnh = this.cachedBuyHold[this.cachedBuyHold.length - 1] ?? 0;
+            bnhReturn = initCap > 0 ? (lastBnh / initCap) * 100 : 0;
         } else if (trades.length > 1) {
             const p0 = trades[0]?.entry.price || 1;
             const p1 = trades[trades.length - 1]?.exit?.price || p0;
@@ -4117,7 +4179,7 @@ export class StrategyTester {
             const d = new Date(t.exit?.time ?? t.entry.time);
             dates.push(`${months[d.getMonth()]} ${d.getDate()}`);
             stratData.push(Math.round(initCap + (this.cachedCumPnl[i] ?? 0)));
-            bnhData.push(this.cachedBuyHold[i] ?? Math.round(initCap * (1 + (i / trades.length) * 4)));
+            bnhData.push(Math.round(initCap + (this.cachedBuyHold[i] ?? 0)));
         }
 
         if (dates.length === 0) {
@@ -5680,6 +5742,14 @@ export class StrategyTester {
         // 1. Equity series
         if (hasEquity) {
             const eqGrid = activeCategories.find((c) => c.id === 'equity')!.gridIndex;
+            const initCap = this.baseInitialCapital || 10000;
+            const lastBnhLabel = this.scaleMode === 'percent'
+                ? `${lastBuyHold >= 0 ? '+' : ''}${((lastBuyHold / initCap) * 100).toFixed(2)}%`
+                : formatSignedNumber(lastBuyHold);
+            const lastCumPnlLabel = this.scaleMode === 'percent'
+                ? `${lastCumPnl >= 0 ? '+' : ''}${((lastCumPnl / initCap) * 100).toFixed(2)}%`
+                : formatSignedNumber(lastCumPnl);
+
             if (this.activeSeries.buyHold) {
                 if (this.showWhitespaces) {
                     const buyHoldTimeData = this.cachedTimestamps.map((time, idx) => [time, buyHold[idx] ?? 0]);
@@ -5699,7 +5769,7 @@ export class StrategyTester {
                             data: [
                                 {
                                     coord: [lastTime, lastBuyHold],
-                                    value: formatNumber(lastBuyHold),
+                                    value: lastBnhLabel,
                                     itemStyle: { color: '#2962ff' },
                                     label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
                                 },
@@ -5722,7 +5792,7 @@ export class StrategyTester {
                             data: [
                                 {
                                     coord: [buyHold.length - 1, lastBuyHold],
-                                    value: formatNumber(lastBuyHold),
+                                    value: lastBnhLabel,
                                     itemStyle: { color: '#2962ff' },
                                     label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
                                 },
@@ -5763,7 +5833,7 @@ export class StrategyTester {
                             data: [
                                 {
                                     coord: [lastTime, lastCumPnl],
-                                    value: formatNumber(lastCumPnl, 2),
+                                    value: lastCumPnlLabel,
                                     itemStyle: { color: '#089981' },
                                     label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
                                 },
@@ -5795,7 +5865,7 @@ export class StrategyTester {
                             data: [
                                 {
                                     coord: [cumPnl.length - 1, lastCumPnl],
-                                    value: formatSignedNumber(lastCumPnl),
+                                    value: lastCumPnlLabel,
                                     itemStyle: { color: '#089981' },
                                     label: { color: '#ffffff', fontSize: 10.5, fontWeight: 'bold', formatter: '{c}' },
                                 },
