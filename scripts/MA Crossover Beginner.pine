@@ -1,0 +1,57 @@
+// built with PineScript Agents by TradersPost
+//@version=6
+indicator("MA Crossover Beginner", shorttitle="MA Cross", overlay=true, max_bars_back=500)
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+
+fastLength = input.int(20, "Fast MA Length", minval=1, group="Moving Averages", tooltip="Number of bars averaged for the fast line. Smaller = reacts quicker.")
+slowLength = input.int(50, "Slow MA Length", minval=2, group="Moving Averages", tooltip="Number of bars averaged for the slow line. Larger = smoother trend.")
+maType = input.string("EMA", "MA Type", options=["SMA", "EMA"], group="Moving Averages", tooltip="SMA = simple average. EMA = gives recent prices more weight.")
+src = input.source(close, "Source", group="Moving Averages", tooltip="Which price to average. Close is standard.")
+
+showFill = input.bool(true, "Show Fill Between MAs", group="Visuals", tooltip="Color the space between the two lines: green when fast is on top.")
+showSignals = input.bool(true, "Show Crossover Dots", group="Visuals", tooltip="Show triangles when the lines cross.")
+
+// ============================================================================
+// CALCULATIONS
+// ============================================================================
+
+// Pick the average type. Think: recipe that takes price + length, returns smoothed line.
+ma(source, length, type) =>
+    switch type
+        "SMA" => ta.sma(source, length)
+        => ta.ema(source, length)
+
+fastMA = ma(src, fastLength, maType)
+slowMA = ma(src, slowLength, maType)
+
+// Cross detection. True only on the exact bar where they cross.
+bullCross = ta.crossover(fastMA, slowMA)
+bearCross = ta.crossunder(fastMA, slowMA)
+
+// Green when fast is above slow = uptrend. Kept on one line (Pine rule).
+trendUp = fastMA > slowMA
+fillColor = trendUp ? color.new(color.green, 90) : color.new(color.red, 90)
+
+// ============================================================================
+// PLOTS (must stay in global scope, never inside if-blocks)
+// ============================================================================
+
+fastPlot = plot(fastMA, "Fast MA", color=color.blue, linewidth=2, linestyle=plot.linestyle_solid)
+slowPlot = plot(slowMA, "Slow MA", color=color.orange, linewidth=2, linestyle=plot.linestyle_solid)
+fill(fastPlot, slowPlot, color=showFill ? fillColor : na, title="Trend Fill")
+
+plotshape(showSignals and bullCross, "Bull Cross", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(showSignals and bearCross, "Bear Cross", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+
+// Trend background tint. barcolor needs no force_overlay, targets price bars.
+barcolor(trendUp ? color.new(color.green, 95) : na)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+alertcondition(bullCross, "Bullish Cross", "Fast MA crossed above Slow MA")
+alertcondition(bearCross, "Bearish Cross", "Fast MA crossed below Slow MA")

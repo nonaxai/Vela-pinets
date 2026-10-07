@@ -1,0 +1,1571 @@
+            .vela-strategy-tester {
+                position: relative;
+                width: 100%;
+                background: #000000;
+                color: #d1d4dc;
+                font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+                font-size: 13px;
+                user-select: none;
+                flex: none;
+                box-sizing: border-box;
+                border-top: 1px solid #2e2e2e;
+                transition: height 0.08s cubic-bezier(0.2, 0, 0, 1);
+            }
+            .vela-strategy-tester * {
+                box-sizing: border-box;
+            }
+            .vela-strategy-tester.is-absolute {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 28;
+                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45);
+            }
+            .vela-strategy-tester.is-maximized {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 100% !important;
+                z-index: 32;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-stats-card-container,
+            .vela-strategy-tester.is-chart-expanded .vst-controls-bar,
+            .vela-strategy-tester.is-chart-expanded .vst-analysis-section,
+            .vela-strategy-tester.is-chart-expanded .vst-trades-analysis-section {
+                display: none !important;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-inline-stats-strip {
+                display: flex !important;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-section {
+                flex: 1 1 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-content {
+                flex: 1 1 auto !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
+            .vst-perf-expand-chart.is-active {
+                background: #242424 !important;
+                color: #ffffff !important;
+            }
+            .vst-inline-stats-strip {
+                display: none;
+                align-items: center;
+                gap: 12px;
+                font-size: 11px;
+                color: #787b86;
+                margin-left: 14px;
+                flex: 1 1 auto;
+                overflow: hidden;
+            }
+            .vst-inline-stat-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                white-space: nowrap;
+            }
+            .vst-inline-stat-label {
+                color: #787b86;
+            }
+            .vst-inline-stat-val {
+                font-weight: 600;
+                color: #ffffff;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-inline-stat-val.is-positive {
+                color: #089981;
+            }
+            .vst-inline-stat-val.is-negative {
+                color: #f23645;
+            }
+            .vst-inline-stat-curr {
+                font-size: 10px;
+                color: #787b86;
+            }
+            .vst-inline-stat-sub.is-positive {
+                color: #089981;
+                font-weight: 600;
+            }
+            .vst-inline-stat-sub.is-muted {
+                color: #787b86;
+            }
+            .vst-inline-stat-divider {
+                color: #383838;
+            }
+
+            /* Resizer */
+            .vst-resizer {
+                position: absolute;
+                top: -3px;
+                left: 0;
+                right: 0;
+                height: 7px;
+                cursor: ns-resize;
+                z-index: 20;
+            }
+            .vst-resizer-line {
+                width: 100%;
+                height: 1px;
+                background: #383838;
+                transition: background 0.15s ease;
+            }
+            .vst-resizer:hover .vst-resizer-line {
+                background: #505562;
+                height: 2px;
+            }
+
+            /* Dock Bar */
+            .vst-dock-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 34px;
+                padding: 0 12px;
+                background: #000000;
+            }
+            .vst-dock-left, .vst-dock-right {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .vst-strat-icon {
+                display: inline-flex;
+                color: #089981;
+            }
+            .vst-title-btn, .vst-tab-title-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                color: #d1d4dc;
+                padding: 3px 6px;
+                border-radius: 4px;
+            }
+            .vst-title-btn:hover, .vst-tab-title-btn:hover {
+                background: #242424;
+                color: #f0f3fa;
+            }
+            .vst-chevron {
+                opacity: 0.65;
+            }
+
+            .vst-icon-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 26px;
+                height: 26px;
+                border-radius: 4px;
+                cursor: pointer;
+                color: #787b86;
+            }
+            .vst-icon-btn:hover {
+                background: #242424;
+                color: #f0f3fa;
+            }
+
+            /* Drawer Body */
+            .vst-drawer-body {
+                display: none;
+                flex-direction: column;
+                height: 100%;
+                background: #000000;
+                overflow: hidden;
+            }
+            .vela-strategy-tester.is-open .vst-drawer-body {
+                display: flex;
+            }
+            .vela-strategy-tester.is-open .vst-dock-bar {
+                display: none;
+            }
+
+            /* Top Header */
+            .vst-top-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 42px;
+                min-height: 42px;
+                padding: 0 16px;
+                background: #000000;
+                border-bottom: 1px solid #2e2e2e;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-strat-tab {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                height: 34px;
+                padding: 0 14px;
+                background: #141414;
+                border-radius: 6px 6px 0 0;
+                font-weight: 600;
+                font-size: 13.5px;
+                border-top: 1px solid #2e2e2e;
+                border-left: 1px solid #2e2e2e;
+                border-right: 1px solid #2e2e2e;
+                color: #f0f3fa;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-header-actions {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex: none;
+                flex-shrink: 0;
+            }
+
+            /* Secondary Controls Bar */
+            .vst-controls-bar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                height: 48px;
+                min-height: 48px;
+                padding: 0 16px;
+                background: #000000;
+                border-bottom: 1px solid #2e2e2e;
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-controls-bar > * {
+                flex-shrink: 0;
+            }
+            .vst-seg-group {
+                display: inline-flex;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 6px;
+                overflow: hidden;
+                height: 34px;
+            }
+            .vst-seg-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 32px;
+                cursor: pointer;
+                color: #787b86;
+                transition: color 0.12s ease;
+            }
+            .vst-seg-btn:hover {
+                color: #ffffff;
+            }
+            .vst-seg-btn.is-active {
+                background: #2e2e2e;
+                color: #f0f3fa;
+            }
+
+            .vst-dropdown-pill {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                height: 34px;
+                padding: 0 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                color: #d1d4dc;
+                font-size: 13px;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                white-space: nowrap;
+                transition: all 0.15s ease;
+            }
+            .vst-dropdown-pill:hover,
+            .vst-dropdown-pill.is-active {
+                background: #242424;
+                border-color: #383838;
+                color: #f0f3fa;
+            }
+            .vst-dropdown-pill.is-active .vst-chevron {
+                transform: rotate(180deg);
+            }
+            .vst-chevron {
+                transition: transform 0.15s ease;
+            }
+            .vst-badge-num {
+                display: inline-flex;
+                margin-left: 3px;
+                font-size: 11px;
+            }
+            .vst-badge-circle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 17px;
+                height: 17px;
+                border-radius: 50%;
+                background: #f0f3fa;
+                color: #000000;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1;
+                margin-left: 2px;
+            }
+            .vst-divider {
+                width: 1px;
+                height: 20px;
+                background: #2e2e2e;
+                margin: 0 4px;
+            }
+
+            /* Key stats */
+            .vst-stats-card-container {
+                padding: 16px 20px 14px 20px;
+                background: #000000;
+                border-bottom: 1px solid #2e2e2e;
+                flex: none;
+            }
+            .vst-stats-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #ffffff;
+                margin-bottom: 12px;
+            }
+            .vst-stats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 24px;
+            }
+            .vst-stat-card {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .vst-stat-label {
+                font-size: 13px;
+                color: #787b86;
+            }
+            .vst-stat-value-row {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .vst-stat-val {
+                font-size: 19px;
+                font-weight: 700;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-stat-val.is-positive {
+                color: #089981;
+            }
+            .vst-stat-val.is-negative {
+                color: #f23645;
+            }
+            .vst-stat-curr {
+                font-size: 11.5px;
+                color: #787b86;
+                font-weight: 600;
+            }
+            .vst-stat-sub {
+                font-size: 14px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-stat-sub.is-positive {
+                color: #089981;
+            }
+            .vst-stat-sub.is-muted {
+                color: #787b86;
+            }
+
+            /* Performance View */
+            .vst-perf-view {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 0px;
+                min-height: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+                background: #000000;
+            }
+            .vela-strategy-tester.is-chart-expanded .vst-perf-view {
+                overflow: hidden !important;
+            }
+
+            /* Performance Section */
+            .vst-perf-section {
+                display: flex;
+                flex-direction: column;
+                flex: none;
+                height: 340px;
+                background: #000000;
+                overflow: hidden;
+            }
+            .vst-perf-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 38px;
+                padding: 0 20px;
+                flex: none;
+            }
+            .vst-perf-title-row {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .vst-perf-title {
+                font-size: 15px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            .vst-info-icon {
+                display: inline-flex;
+                color: #787b86;
+                cursor: help;
+            }
+            .vst-perf-actions {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            /* Content & Canvas */
+            .vst-perf-content {
+                position: relative;
+                flex: 1 1 auto;
+                width: 100%;
+                min-height: 120px;
+                overflow: hidden;
+            }
+            .vst-echarts-container {
+                width: 100%;
+                height: 100%;
+                min-height: 120px;
+            }
+
+            /* Series Toggles (Image 4 & 5) */
+            .vst-series-toggles {
+                position: absolute;
+                top: 6px;
+                left: 16px;
+                z-index: 10;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+                pointer-events: auto;
+            }
+            .vst-series-pills-list {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+            }
+            .vst-series-pill {
+                all: unset;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 11.5px;
+                color: #787b86;
+                cursor: pointer;
+                transition: color 0.12s ease;
+                min-width: 155px;
+            }
+            .vst-series-pill:hover {
+                color: #d1d4dc;
+                background: rgba(255, 255, 255, 0.04);
+            }
+            .vst-series-pill.is-active {
+                color: #ffffff;
+                font-weight: 500;
+            }
+            .vst-series-pill-compact {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 2px 7px;
+                border-radius: 4px;
+                background: rgba(27, 28, 33, 0.7);
+                border: 1px solid #2e2e2e;
+                font-size: 11px;
+                color: #d1d4dc;
+                cursor: pointer;
+            }
+            .vst-series-pill-compact:hover {
+                background: #252830;
+                color: #ffffff;
+            }
+            .vst-series-eye {
+                display: inline-flex;
+                color: #787b86;
+                opacity: 0.8;
+            }
+            .vst-series-pill.is-active .vst-series-eye {
+                color: #ffffff;
+            }
+            .vst-series-eye:hover {
+                opacity: 1;
+            }
+            .vst-series-collapse-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 18px;
+                height: 18px;
+                margin-top: 2px;
+                border-radius: 3px;
+                background: rgba(27, 28, 33, 0.7);
+                border: 1px solid #2e2e2e;
+                color: #787b86;
+                cursor: pointer;
+            }
+            .vst-series-collapse-btn:hover {
+                color: #ffffff;
+                border-color: #3e414c;
+            }
+
+            /* Tooltip card for Run-ups and drawdowns (Image 5) */
+            .vst-rd-card {
+                background: #1e222d;
+                border: 1px solid #363c4e;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #d1d4dc;
+                font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, sans-serif;
+                font-size: 12px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+                min-width: 170px;
+            }
+            .vst-rd-row1 {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-rd-row2 {
+                display: flex;
+                justify-content: flex-end;
+                color: #787b86;
+                font-size: 11px;
+                margin-top: 2px;
+            }
+            .vst-rd-row3 {
+                margin-top: 6px;
+                color: #787b86;
+                font-size: 11px;
+                border-top: 1px solid #2a2e39;
+                padding-top: 4px;
+            }
+
+            /* Trades Section & Table (Dedicated section, media_1791243438337.png) */
+            .vst-trades-section {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 0px;
+                min-height: 0;
+                background: #000000;
+                overflow: hidden;
+            }
+            .vst-trades-table-container {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 0px;
+                min-height: 0;
+                background: #000000;
+                overflow: hidden;
+            }
+            .vst-trades-header-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 42px;
+                min-height: 42px;
+                padding: 0 20px;
+                border-bottom: 1px solid #2e2e2e;
+                background: #000000;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-trades-header-title {
+                font-size: 15px;
+                font-weight: 700;
+                color: #f0f3fa;
+            }
+            .vst-trades-header-actions {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex: none;
+                flex-shrink: 0;
+            }
+            .vst-trades-header-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: none;
+            }
+            .vst-trades-badge {
+                font-size: 11px;
+                color: #868a96;
+                background: #141414;
+                padding: 2px 8px;
+                border-radius: 10px;
+                border: 1px solid #2e2e2e;
+                font-weight: 500;
+            }
+            .vst-trades-header-filters {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                margin: 0 16px;
+                min-width: 0;
+                overflow-x: auto;
+            }
+            .vst-filter-group {
+                display: inline-flex;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 4px;
+                padding: 2px;
+                gap: 2px;
+                flex-shrink: 0;
+            }
+            .vst-filter-pill {
+                all: unset;
+                font-size: 11px;
+                font-weight: 500;
+                padding: 2px 8px;
+                border-radius: 3px;
+                cursor: pointer;
+                color: #868a96;
+                transition: background 120ms ease, color 120ms ease;
+                white-space: nowrap;
+            }
+            .vst-filter-pill:hover {
+                color: #d1d4dc;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .vst-filter-pill.is-active {
+                background: #2a2e39;
+                color: #f0f3fa;
+                font-weight: 600;
+            }
+            .vst-search-box {
+                display: flex;
+                align-items: center;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 4px;
+                padding: 0 8px;
+                height: 24px;
+                gap: 6px;
+                color: #868a96;
+                flex-shrink: 0;
+            }
+            .vst-search-box:focus-within {
+                border-color: #2962ff;
+                color: #d1d4dc;
+            }
+            .vst-trades-search-input {
+                all: unset;
+                font-size: 11px;
+                color: #f0f3fa;
+                width: 120px;
+            }
+            .vst-search-clear {
+                all: unset;
+                cursor: pointer;
+                color: #868a96;
+                font-size: 10px;
+                padding: 0 2px;
+            }
+            .vst-search-clear:hover {
+                color: #f0f3fa;
+            }
+            .vst-trades-table-wrapper {
+                flex: 1 1 0px;
+                overflow-y: auto;
+                overflow-x: auto;
+                min-height: 0;
+            }
+            .vst-trades-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+            .vst-trades-table th {
+                position: sticky;
+                top: 0;
+                background: #141414;
+                padding: 8px 14px;
+                text-align: left;
+                color: #868a96;
+                border-bottom: 1px solid #2e2e2e;
+                font-weight: 550;
+                z-index: 2;
+                white-space: nowrap;
+            }
+            .vst-sortable-th {
+                cursor: pointer;
+                user-select: none;
+                transition: background 120ms ease, color 120ms ease;
+            }
+            .vst-sortable-th:hover {
+                background: #1e1e1e !important;
+                color: #f0f3fa !important;
+            }
+            .vst-sortable-th.is-sorted {
+                color: #2962ff !important;
+                background: #181818 !important;
+            }
+            .vst-sort-arrow {
+                display: inline-block;
+                margin-left: 5px;
+                font-size: 9px;
+                opacity: 0.4;
+            }
+            .vst-sortable-th.is-sorted .vst-sort-arrow {
+                opacity: 1;
+                color: #2962ff;
+            }
+            .vst-trades-table td {
+                padding: 8px 14px;
+                border-bottom: 1px solid #1e1e1e;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .vst-trades-table tr:hover td {
+                background: rgba(255, 255, 255, 0.04);
+            }
+
+            /* Performance Analysis Section (media_1791250134285.png) */
+            .vst-analysis-section {
+                padding: 16px 20px 24px 20px;
+                background: #000000;
+                border-top: 1px solid #2e2e2e;
+                flex: none;
+            }
+            .vst-analysis-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #ffffff;
+                margin-bottom: 12px;
+            }
+            .vst-analysis-tabs {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 4px;
+            }
+            .vst-analysis-tab {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                height: 30px;
+                padding: 0 16px;
+                border-radius: 15px;
+                background: #242424;
+                border: 1px solid transparent;
+                color: #868a96;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+            .vst-analysis-tab:hover {
+                background: #383838;
+                color: #ffffff;
+            }
+            .vst-analysis-tab.is-active {
+                background: #ffffff !important;
+                color: #000000 !important;
+                border-color: #ffffff !important;
+                font-weight: 600 !important;
+            }
+            .vst-analysis-metrics-row {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                padding: 16px 0 20px 0;
+            }
+            .vst-analysis-metric-col {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .vst-analysis-metric-label {
+                font-size: 12px;
+                color: #787b86;
+                font-weight: 400;
+            }
+            .vst-analysis-metric-val-wrap {
+                display: flex;
+                align-items: baseline;
+                gap: 5px;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-analysis-metric-val {
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-analysis-metric-val.is-positive {
+                color: #089981;
+            }
+            .vst-analysis-metric-val.is-negative {
+                color: #f23645;
+            }
+            .vst-analysis-metric-unit {
+                font-size: 11px;
+                color: #787b86;
+                font-weight: 500;
+            }
+            .vst-analysis-metric-sub {
+                font-size: 12px;
+                color: #787b86;
+                font-weight: 400;
+            }
+            .vst-analysis-metric-sub.is-positive {
+                color: #089981;
+            }
+            .vst-analysis-metric-sub.is-negative {
+                color: #f23645;
+            }
+            .vst-analysis-subnav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+            .vst-analysis-subtitle {
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+            .vst-segmented-toggle {
+                display: inline-flex;
+                align-items: center;
+                background: #141414;
+                border-radius: 6px;
+                padding: 2px;
+                border: 1px solid #2e2e2e;
+            }
+            .vst-toggle-btn {
+                all: unset;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+                color: #787b86;
+                cursor: pointer;
+                transition: all 0.12s ease;
+            }
+            .vst-toggle-btn:hover {
+                color: #d1d4dc;
+            }
+            .vst-toggle-btn.is-active {
+                background: #383838;
+                color: #ffffff;
+                font-weight: 600;
+            }
+
+            /* Breakdown List & Tooltip */
+            .vst-analysis-body {
+                position: relative;
+            }
+            .vst-breakdown-tooltip {
+                position: absolute;
+                z-index: 100;
+                pointer-events: none;
+                opacity: 0;
+                transform: translateY(4px);
+                transition: opacity 0.1s ease, transform 0.1s ease;
+                background: #1e222d;
+                border: 1px solid #363c4e;
+                border-radius: 6px;
+                padding: 8px 12px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+                min-width: 195px;
+                font-size: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif;
+                color: #d1d4dc;
+            }
+            .vst-breakdown-tooltip.is-visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            .vst-bdt-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                line-height: 20px;
+                white-space: nowrap;
+            }
+            .vst-bdt-label {
+                display: flex;
+                align-items: center;
+                color: #d1d4dc;
+                font-weight: 400;
+            }
+            .vst-bdt-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .vst-bdt-dot.is-profit {
+                background: #089981;
+            }
+            .vst-bdt-dot.is-loss {
+                background: #f23645;
+            }
+            .vst-bdt-dot.is-comm {
+                background: #b8741a;
+            }
+            .vst-bdt-val {
+                font-weight: 400;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+                margin-left: 20px;
+            }
+            .vst-bdt-beak {
+                position: absolute;
+                bottom: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #1e222d;
+            }
+            .vst-breakdown-list {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .vst-breakdown-row {
+                display: flex;
+                align-items: center;
+                height: 34px;
+                padding: 0 8px;
+                border-radius: 6px;
+                transition: background 0.12s ease;
+            }
+            .vst-breakdown-row:hover {
+                background: rgba(255, 255, 255, 0.03);
+            }
+            .vst-breakdown-label {
+                width: 160px;
+                flex: none;
+                font-size: 13px;
+                font-weight: 500;
+                color: #d1d4dc;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vst-breakdown-bar-track {
+                flex: 1;
+                position: relative;
+                height: 18px;
+                margin: 0 20px;
+                display: flex;
+                align-items: center;
+            }
+            .vst-breakdown-guide-line {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 50%;
+                height: 1px;
+                background: #232731;
+            }
+            .vst-breakdown-zero-line {
+                position: absolute;
+                left: 30%;
+                top: 0;
+                bottom: 0;
+                width: 1px;
+                background: #383838;
+                z-index: 2;
+            }
+            .vst-breakdown-loss-group {
+                position: absolute;
+                right: 70%;
+                top: 4px;
+                bottom: 4px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                z-index: 3;
+            }
+            .vst-breakdown-profit-group {
+                position: absolute;
+                left: 30%;
+                top: 4px;
+                bottom: 4px;
+                display: flex;
+                align-items: center;
+                z-index: 3;
+            }
+            .vst-breakdown-bar-segment {
+                height: 10px;
+            }
+            .vst-breakdown-val-col {
+                width: 150px;
+                flex: none;
+                text-align: right;
+                font-size: 13px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-breakdown-val-col.is-positive {
+                color: #089981;
+            }
+            .vst-breakdown-val-col.is-negative {
+                color: #f23645;
+            }
+            .vst-breakdown-val-col .vst-unit {
+                color: #787b86;
+                font-size: 11px;
+                font-weight: 400;
+                margin-left: 4px;
+            }
+
+            /* Analysis Chart Wrapper (Periodical & Benchmarking) */
+            .vst-analysis-chart-wrapper {
+                position: relative;
+                width: 100%;
+                height: 270px;
+                background: #000000;
+            }
+            .vst-analysis-chart {
+                width: 100%;
+                height: 100%;
+            }
+            .vst-analysis-nav-btn {
+                all: unset;
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 26px;
+                height: 26px;
+                border-radius: 4px;
+                background: rgba(30, 32, 37, 0.85);
+                border: 1px solid #2e2e2e;
+                color: #868a96;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 10;
+                transition: all 0.15s ease;
+            }
+            .vst-analysis-nav-btn:hover {
+                background: #242424;
+                color: #ffffff;
+                border-color: #383838;
+            }
+            .vst-analysis-nav-btn.vst-nav-prev {
+                left: 4px;
+            }
+            .vst-analysis-nav-btn.vst-nav-next {
+                right: 4px;
+            }
+
+            /* Empty state (Margin usage) */
+            .vst-empty-state {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 48px 0;
+                gap: 14px;
+            }
+            .vst-ufo-cow-icon {
+                opacity: 0.8;
+            }
+            .vst-empty-text {
+                font-size: 13px;
+                color: #787b86;
+                font-weight: 500;
+            }
+
+            /* Growth & Decline */
+            .vst-growth-decline-grid {
+                display: grid;
+                grid-template-columns: 1.25fr 1fr;
+                gap: 32px;
+            }
+            .vst-gd-chart-card, .vst-gd-comparison-card {
+                display: flex;
+                flex-direction: column;
+            }
+            .vst-gd-echarts-container {
+                width: 100%;
+                height: 260px;
+            }
+            .vst-gd-comp-section {
+                margin-top: 10px;
+                margin-bottom: 14px;
+            }
+            .vst-gd-comp-heading {
+                font-size: 12px;
+                color: #787b86;
+                margin-bottom: 10px;
+            }
+            .vst-gd-comp-row {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 8px;
+                font-size: 12px;
+            }
+            .vst-gd-comp-label {
+                width: 75px;
+                color: #787b86;
+                flex: none;
+            }
+            .vst-gd-comp-bar-track {
+                flex: 1;
+                height: 14px;
+                background: transparent;
+                display: flex;
+                align-items: center;
+            }
+            .vst-gd-comp-bar {
+                height: 14px;
+                border-radius: 2px;
+            }
+            .vst-gd-comp-bar.is-runup {
+                background: #089981;
+            }
+            .vst-gd-comp-bar.is-drawdown {
+                background: #f23645;
+            }
+            .vst-gd-comp-bar.is-cur-drawdown {
+                background: #8b2631;
+            }
+            .vst-gd-comp-val {
+                width: 55px;
+                text-align: right;
+                font-size: 12px;
+                font-weight: 500;
+                color: #d1d4dc;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Trades Analysis (media_1791250361342.png) */
+            .vst-trades-analysis-section {
+                padding: 16px 20px 24px 20px;
+                background: #000000;
+                border-top: 1px solid #2e2e2e;
+                flex: none;
+            }
+            .vst-trades-analysis-tabs {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 4px;
+            }
+            .vst-trades-dist-grid {
+                display: grid;
+                grid-template-columns: 1.4fr 1fr;
+                gap: 28px;
+                align-items: start;
+            }
+            .vst-returns-dist-col, .vst-donut-dist-col {
+                display: flex;
+                flex-direction: column;
+            }
+            .vst-donut-dist-body {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                padding-top: 10px;
+            }
+            .vst-donut-legend {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                flex: 1;
+            }
+            .vst-donut-legend-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-donut-legend-dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+            .vst-donut-legend-label {
+                color: #d1d4dc;
+                width: 80px;
+            }
+            .vst-donut-legend-count {
+                color: #787b86;
+                width: 65px;
+                text-align: right;
+            }
+            .vst-donut-legend-pct {
+                color: #787b86;
+                width: 55px;
+                text-align: right;
+            }
+            .vst-returns-legend {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px 0 12px;
+                font-size: 11px;
+                color: #787b86;
+            }
+            .vst-returns-legend-left, .vst-returns-legend-right {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+            .vst-legend-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vst-legend-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                display: inline-block;
+            }
+            .vst-legend-dash {
+                font-weight: 700;
+                letter-spacing: -1px;
+            }
+
+            /* Dropdowns (Gambar 3, 4, 5) */
+            .vst-dropdown-panel {
+                position: fixed;
+                background: #141414;
+                border: 1px solid #383838;
+                border-radius: 8px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+                padding: 8px 0;
+                z-index: 1000;
+                font-size: 13px;
+                color: #d1d4dc;
+                font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+                user-select: none;
+                box-sizing: border-box;
+            }
+            .vst-dropdown-panel * {
+                box-sizing: border-box;
+            }
+            .vst-drop-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 14px 8px 14px;
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            .vst-drop-header-left {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vst-help-circle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: #383838;
+                color: #a3a6af;
+                font-size: 10px;
+                font-weight: bold;
+                cursor: help;
+            }
+            .vst-drop-reset-btn {
+                all: unset;
+                font-size: 12.5px;
+                font-weight: 500;
+                color: #787b86;
+                cursor: pointer;
+            }
+            .vst-drop-reset-btn:hover,
+            .vst-drop-reset-btn.is-active {
+                color: #2962ff;
+            }
+            .vst-drop-divider {
+                height: 1px;
+                background: #2e2e2e;
+                margin: 6px 0;
+            }
+            .vst-drop-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 8px 12px;
+                margin: 2px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease, color 0.12s ease;
+            }
+            .vst-drop-item:hover {
+                background: #242424;
+                color: #ffffff;
+            }
+            .vst-drop-item.is-selected {
+                background: #f0f3fa;
+                color: #000000;
+                font-weight: 600;
+            }
+            .vst-drop-item.is-selected:hover {
+                background: #e4e7ee;
+                color: #000000;
+            }
+            .vst-drop-hint {
+                font-size: 12px;
+                color: #787b86;
+                margin-left: auto;
+            }
+            .vst-drop-item.is-selected .vst-drop-hint {
+                color: #50535e;
+            }
+            .vst-drop-custom-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                margin: 2px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease;
+            }
+            .vst-drop-custom-item:hover {
+                background: #242424;
+                color: #ffffff;
+            }
+
+            /* Initial Capital Panel (Gambar 4) */
+            .vst-capital-panel-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px 6px 12px;
+                position: relative;
+            }
+            .vst-capital-input {
+                all: unset;
+                width: 110px;
+                height: 34px;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 6px;
+                padding: 0 10px;
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .vst-capital-input:focus {
+                border-color: #2962ff;
+            }
+            .vst-curr-toggle-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 6px;
+                height: 34px;
+                padding: 0 10px;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                border-radius: 6px;
+                color: #d1d4dc;
+                font-size: 12.5px;
+                cursor: pointer;
+                min-width: 125px;
+            }
+            .vst-curr-toggle-btn:hover {
+                border-color: #383838;
+                color: #ffffff;
+            }
+            .vst-curr-toggle-btn.is-active .vst-chevron {
+                transform: rotate(180deg);
+            }
+            .vst-curr-submenu {
+                position: absolute;
+                top: 48px;
+                right: 12px;
+                background: #141414;
+                border: 1px solid #383838;
+                border-radius: 6px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+                padding: 4px 0;
+                min-width: 135px;
+                z-index: 1005;
+                max-height: 220px;
+                overflow-y: auto;
+            }
+            .vst-curr-item {
+                display: flex;
+                align-items: center;
+                padding: 6px 12px;
+                margin: 2px 4px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12.5px;
+                color: #d1d4dc;
+            }
+            .vst-curr-item:hover {
+                background: #242424;
+                color: #ffffff;
+            }
+            .vst-curr-item.is-selected {
+                background: #f0f3fa;
+                color: #000000;
+                font-weight: 600;
+            }
+            .vst-curr-item.is-selected:hover {
+                background: #e4e7ee;
+                color: #000000;
+            }
+
+            /* Checkboxes (Script execution & Columns) */
+            .vst-check-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 7px 14px;
+                cursor: pointer;
+                font-size: 13px;
+                color: #d1d4dc;
+                transition: background 0.12s ease;
+            }
+            .vst-check-item:hover {
+                background: #242424;
+                color: #ffffff;
+            }
+            .vst-checkbox {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid #383838;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+                color: #ffffff;
+                flex: none;
+            }
+            .vst-check-item.is-checked .vst-checkbox {
+                background: #089981;
+                border-color: #089981;
+            }
+            .vst-check-info {
+                display: inline-flex;
+                align-items: center;
+                margin-left: auto;
+                color: #787b86;
+                font-size: 12px;
+            }
+
+            /* Trades Actions Buttons (media_1791243438337.png) */
+            .vst-trades-action-btn {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                border-radius: 4px;
+                background: #141414;
+                border: 1px solid #2e2e2e;
+                color: #868a96;
+                cursor: pointer;
+                transition: all 0.12s ease;
+            }
+            .vst-trades-action-btn:hover,
+            .vst-trades-action-btn.is-active {
+                background: #242424;
+                color: #f0f3fa;
+                border-color: #383838;
+            }
+
+            /* Switches (Scale & Whitespace) */
+            .vst-switch-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 7px 14px;
+                font-size: 13px;
+                color: #d1d4dc;
+                cursor: pointer;
+                transition: background 0.12s ease;
+            }
+            .vst-switch-item:hover {
+                background: #242424;
+                color: #ffffff;
+            }
+            .vst-switch-track {
+                width: 32px;
+                height: 18px;
+                background: #383838;
+                border-radius: 10px;
+                position: relative;
+                transition: background 0.15s ease;
+            }
+            .vst-switch-track.is-on {
+                background: #ffffff;
+            }
+            .vst-switch-thumb {
+                width: 14px;
+                height: 14px;
+                background: #ffffff;
+                border-radius: 50%;
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                transition: transform 0.15s ease, background 0.15s ease;
+            }
+            .vst-switch-track.is-on .vst-switch-thumb {
+                transform: translateX(14px);
+                background: #000000;
+            }
