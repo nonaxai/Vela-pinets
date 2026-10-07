@@ -18,6 +18,10 @@ import {
     type WidgetContext,
     type CellStateContext,
     type InputValue,
+    type IndicatorStyleSettings,
+    type IndicatorVisibilitySettings,
+    type BarRange,
+    type OHLCV,
 } from '@luxalgo/vela/plugin';
 import { PineWorkerEngine } from '../src';
 import { mountPineEditor, scriptStore } from './pine-editor';
@@ -34,6 +38,8 @@ interface PersistedScriptItem {
     visible: boolean;
     inputs?: Record<string, InputValue>;
     props?: Record<string, InputValue>;
+    styleSettings?: IndicatorStyleSettings;
+    visibilitySettings?: IndicatorVisibilitySettings;
 }
 
 interface PersistedStrategyTesterState {
@@ -70,6 +76,8 @@ registerStatePersistence({
                     visible: h.visible,
                     inputs: typeof h.inputValues === 'function' ? h.inputValues() : {},
                     props: typeof h.propValues === 'function' ? h.propValues() : {},
+                    styleSettings: typeof h.styleSettings === 'function' ? h.styleSettings() : undefined,
+                    visibilitySettings: typeof h.visibilitySettings === 'function' ? h.visibilitySettings() : undefined,
                 });
             }
         }
@@ -91,6 +99,12 @@ registerStatePersistence({
                             }
                             if (s.props && typeof res.handle.setProps === 'function') {
                                 res.handle.setProps(s.props);
+                            }
+                            if (s.styleSettings && typeof res.handle.setStyleSettings === 'function') {
+                                res.handle.setStyleSettings(s.styleSettings);
+                            }
+                            if (s.visibilitySettings && typeof res.handle.setVisibilitySettings === 'function') {
+                                res.handle.setVisibilitySettings(s.visibilitySettings);
                             }
                             if (s.visible === false && typeof res.handle.setVisible === 'function') {
                                 res.handle.setVisible(false);
@@ -128,17 +142,63 @@ interface SessionSymbolInfo {
     pricescale?: number;
     timezone?: string;
     session?: string;
+    session_extended?: string;
     [key: string]: unknown;
 }
 
-function wrapSessionProvider<T extends { getSymbolInfo?(ticker: string): Promise<SessionSymbolInfo | undefined> }>(p: T): T {
-    const orig = p.getSymbolInfo?.bind(p);
+const nyFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+});
+
+function isRegularTradingHour(timeMs: number): boolean {
+    const parts = nyFormatter.formatToParts(new Date(timeMs));
+    let weekday = '';
+    let hour = 0;
+    let minute = 0;
+    for (const p of parts) {
+        if (p.type === 'weekday') weekday = p.value;
+        else if (p.type === 'hour') hour = Number(p.value);
+        else if (p.type === 'minute') minute = Number(p.value);
+    }
+    if (weekday === 'Sat' || weekday === 'Sun') return false;
+    const minutesOfDay = hour * 60 + minute;
+    return minutesOfDay >= 570 && minutesOfDay < 960;
+}
+
+interface ProviderBarRange extends BarRange {
+    count?: number;
+}
+
+interface ProviderSubscribeOpts {
+    session?: string;
+    [key: string]: unknown;
+}
+
+function wrapSessionProvider<
+    T extends {
+        getSymbolInfo?(ticker: string): Promise<SessionSymbolInfo | undefined>;
+        getBars?(ticker: string, timeframe: string, range: ProviderBarRange): Promise<OHLCV[]>;
+        subscribe?(
+            ticker: string,
+            timeframe: string,
+            onBar: (bar: OHLCV) => void,
+            opts?: ProviderSubscribeOpts,
+        ): () => void;
+    },
+>(p: T): T {
+    const origInfo = p.getSymbolInfo?.bind(p);
     p.getSymbolInfo = async (ticker: string): Promise<SessionSymbolInfo> => {
-        const info = orig ? await orig(ticker).catch(() => undefined) : undefined;
+        const info = origInfo ? await origInfo(ticker).catch(() => undefined) : undefined;
         if (info) {
             return {
                 ...info,
-                session: '0930-1600:23456',
+                session: '0930-1600',
+                session_extended: '0400-2000',
+                timezone: 'America/New_York',
             };
         }
         return {
@@ -148,10 +208,52 @@ function wrapSessionProvider<T extends { getSymbolInfo?(ticker: string): Promise
             type: 'crypto',
             mintick: 0.01,
             pricescale: 100,
-            timezone: 'Etc/UTC',
-            session: '0930-1600:23456',
+            timezone: 'America/New_York',
+            session: '0930-1600',
+            session_extended: '0400-2000',
         };
     };
+
+    const origGetBars = p.getBars?.bind(p);
+    if (origGetBars) {
+        p.getBars = async (ticker: string, timeframe: string, range: ProviderBarRange): Promise<OHLCV[]> => {
+            const isIntraday = !timeframe.includes('D') && !timeframe.includes('W') && !timeframe.includes('M');
+            if (range && range.session === 'regular' && isIntraday) {
+                const reqRange: ProviderBarRange = { ...range };
+                if (typeof reqRange.count === 'number') {
+                    reqRange.count = Math.min(2500, reqRange.count * 4);
+                }
+                const rawBars = await origGetBars(ticker, timeframe, reqRange);
+                const filtered = rawBars.filter((b) => isRegularTradingHour(b.time));
+                return reqRange.count ? filtered.slice(-reqRange.count) : filtered;
+            }
+            return origGetBars(ticker, timeframe, range);
+        };
+    }
+
+    const origSubscribe = p.subscribe?.bind(p);
+    if (origSubscribe) {
+        p.subscribe = (
+            ticker: string,
+            timeframe: string,
+            onBar: (bar: OHLCV) => void,
+            opts?: ProviderSubscribeOpts,
+        ): (() => void) => {
+            const isIntraday = !timeframe.includes('D') && !timeframe.includes('W') && !timeframe.includes('M');
+            return origSubscribe(
+                ticker,
+                timeframe,
+                (bar: OHLCV) => {
+                    if (opts?.session === 'regular' && isIntraday && !isRegularTradingHour(bar.time)) {
+                        return;
+                    }
+                    onBar(bar);
+                },
+                opts,
+            );
+        };
+    }
+
     return p;
 }
 
@@ -542,6 +644,8 @@ export function saveAllCharts(ctx?: WidgetContext): void {
                         visible: h.visible,
                         inputs: typeof h.inputValues === 'function' ? h.inputValues() : {},
                         props: typeof h.propValues === 'function' ? h.propValues() : {},
+                        styleSettings: typeof h.styleSettings === 'function' ? h.styleSettings() : undefined,
+                        visibilitySettings: typeof h.visibilitySettings === 'function' ? h.visibilitySettings() : undefined,
                     });
                 }
             }
@@ -611,6 +715,11 @@ function attachChartSync(chart: Vela): () => void {
         }),
     );
     unsubs.push(
+        chart.on('indicator:style', () => {
+            scheduleAutoSave();
+        }),
+    );
+    unsubs.push(
         chart.on('indicator:inputs', () => {
             syncActiveStrategy();
             scheduleAutoSave();
@@ -660,6 +769,12 @@ async function restoreSavedWorkspaceData(): Promise<void> {
                                     }
                                     if (s.props && typeof res.handle.setProps === 'function') {
                                         res.handle.setProps(s.props);
+                                    }
+                                    if (s.styleSettings && typeof res.handle.setStyleSettings === 'function') {
+                                        res.handle.setStyleSettings(s.styleSettings);
+                                    }
+                                    if (s.visibilitySettings && typeof res.handle.setVisibilitySettings === 'function') {
+                                        res.handle.setVisibilitySettings(s.visibilitySettings);
                                     }
                                     if (s.visible === false && typeof res.handle.setVisible === 'function') {
                                         res.handle.setVisible(false);
